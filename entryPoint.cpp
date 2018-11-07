@@ -1,7 +1,9 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <functional>
 
 typedef unsigned char byte;
 
@@ -20,6 +22,19 @@ void ffxAssumptionWrong(const std::wstring& path, const std::wstring& text){
       }
    }
    std::wstring errorMessage = L"FFX assumption proved wrong for file '" + path + L"': " + text;
+   fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   throw;
+}
+
+void ffxResearchError(const std::wstring& path, const std::wstring& text){
+   const wchar_t* filePath = &path[path.size() - 1];
+   while(--filePath != path.data()){
+      if(*filePath == L'/'){
+         ++filePath;
+         break;
+      }
+   }
+   std::wstring errorMessage = L"Error for file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
    throw;
 }
@@ -71,7 +86,7 @@ struct RawFfxFile{
    int* data3 = 0;
 };
 
-void loadRawFfxFile(const std::wstring& path, RawFfxFile* rawFfx){
+void loadRawFfxFile(RawFfxFile* rawFfx, const std::wstring& path){
    *rawFfx = RawFfxFile();
 
    FILE* file = _wfopen(path.c_str(), L"rb");
@@ -151,7 +166,7 @@ void testEveryFfx(std::wstring dir){
       //wprintf_s(L"File %d/%d\n", index, fileList.size());
       ++index;
 
-      loadRawFfxFile(dir + path, &rawFfx);
+      loadRawFfxFile(&rawFfx, dir + path);
 
       //int lastData2Pointer = rawFfx.data3[rawFfx.header->data3Count - 1];
       //int type = *reinterpret_cast<int*>(&rawFfx.bytes[lastData2Pointer]);
@@ -231,6 +246,7 @@ void testEveryFfx(std::wstring dir){
          ffxAssumptionWrong(path, L"Not enough data3 pointers");
       }
 
+      bool has133 = false;
       for(int n = 0; n < rawFfx.header->data3Count; ++n){
          int pointer = rawFfx.data3[n];
          int* p = reinterpret_cast<int*>(&rawFfx.bytes[pointer]);
@@ -264,7 +280,12 @@ void testEveryFfx(std::wstring dir){
             if(value1 != 0.0f && value2 != 0.0f && value1 != 1.0f && value2 != 1.0f){
                //printf("%f, %f\n", value1, value2);
             }
+         }else if(type == 133){
+            has133 = true;
          }
+      }
+      if(has133 == false){
+         ffxAssumptionWrong(path, L"Type 133 missing");
       }
 
       // Test the second var in the second data2 pointer
@@ -359,14 +380,20 @@ void testEveryFfx(std::wstring dir){
       do{
          int* p = reinterpret_cast<int*>(&rawFfx.bytes[0x2c]);
          if (preDataSize == 4) break;
+
          if(p[0] != 0 || p[1] != 0 || p[2] != 0 || p[3] != 0 || p[4] != 0 || p[5] != 0 || !(p[6] == 8 || p[6] == 10)){
             ffxAssumptionWrong(path, L"Pre-data value unfamiliar");
          }
+         //printf("%d, %d\n", p[7], p[8]);
+
          if (preDataSize == 32) break;
+
          if(p[7] != 0 || p[8] != 0 || p[9] != 0 || p[10] != 65536 || p[11] != 0 || p[12] != 0){
             ffxAssumptionWrong(path, L"Pre-data value unfamiliar");
          }
+
          if (preDataSize == 56) break;
+
          if(p[13] != 0 || p[14] != 0 || p[15] != 0 || p[16] != 65536 || p[17] != 0 || p[18] != 0){
             ffxAssumptionWrong(path, L"Pre-data value unfamiliar");
          }
@@ -377,13 +404,400 @@ void testEveryFfx(std::wstring dir){
    wprintf_s(L"maxSecondData2Pointer = %d '%s'\n", maxSecondData2Pointer, maxSecondData2PointerPath.c_str());
 }
 
+struct Data2Entry{
+   int originalAddress = -1;
+   int pointerAddress = -1;
+};
+
+struct Param{
+   enum Type{
+      Unknown,
+      Int,
+      Float
+   };
+
+   Param(int value) : value(value), type(Type::Int){}
+   Param(float value) : value(*reinterpret_cast<int*>(&value)), type(Type::Float){}
+
+   int intValue(){return this->value;}
+   float floatValue(){return *reinterpret_cast<float*>(this->value);}
+
+   int type;
+private: int value;
+};
+
+struct Data3Entry{
+   int originalAddress = -1;
+   int pointerAddress = -1;
+
+   int type = -1;
+   std::vector<Param> params;
+};
+
+struct Line{
+   int index = -1;
+   int address = 0;
+
+   bool isInt = false;
+   bool isFloat = false;
+   bool isString = false;
+
+   int intValue = 0;
+   float floatValue = 0.0f;
+   char stringValue[4];
+
+   std::vector<int> referencedBy;
+   int referencedLineIndex = 0;
+   bool isPartOfReference = false;
+
+   bool isData3 = false;
+};
+
+void outputFfxAnalysis(std::wstring path){
+   std::vector<Line> lines; // Each 4 bytes is a line
+   std::vector<Data2Entry> data2Entries;
+   std::vector<Data3Entry> data3Entries;
+   char sBuffer[200];
+
+   auto createLine = [&](int address) -> Line&{
+      //sprintf(sBuffer, "0x%05x %6d ", address, address);
+      //lines.emplace_back(sBuffer);
+      //return lines.back();
+
+      lines.emplace_back();
+      lines.back().index = lines.size() - 1;
+      lines.back().address = address;
+      return lines.back();
+   };
+
+   RawFfxFile rawFfx;
+   loadRawFfxFile(&rawFfx, path);
+
+   // "FXR" line
+   Line& sigLine = createLine(0);
+   sigLine.isString = true;
+   memcpy(sigLine.stringValue, reinterpret_cast<char*>(&rawFfx.bytes[0]), 4);
+
+   // Populate data lines with ints or floats
+   {
+      int* ip = reinterpret_cast<int*>(&rawFfx.bytes[0]);
+      float* fp = reinterpret_cast<float*>(ip);
+      int lineCount = rawFfx.header->data2Start / 4 + rawFfx.header->data2Count + rawFfx.header->data3Count;
+      for(int n = 1; n < lineCount; ++n){
+         Line& line = createLine(n * 4);
+
+         //float floatAbsValue = fabs(fp[n]);
+         //if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f){
+         //   sprintf(sBuffer, "float %f", fp[n]);
+         //}else{
+         //   sprintf(sBuffer, "int %d", ip[n]);
+         //}
+         //line += sBuffer;
+
+         float floatAbsValue = fabs(fp[n]);
+         if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f || ip[n] == -2147483647 - 1){
+            line.isFloat = true;
+            line.floatValue = fp[n];
+         }else{
+            line.isInt = true;
+            line.intValue = ip[n];
+         }
+      }
+   }
+
+   // Analyze possible references
+   for(Line& line : lines){
+      if(line.isInt && line.intValue > 4){
+         auto findResult = std::find_if(
+            lines.begin(),
+            lines.end(),
+            [&](Line& l) -> bool{return l.address == line.intValue;}
+         );
+         if(findResult != lines.end()){
+            findResult->referencedBy.push_back(line.address);
+            line.referencedLineIndex = findResult->index;
+         }
+      }
+   }
+
+   // Create Data2 info
+   {
+      int baseAddress = rawFfx.header->data2Start;
+      for(int n = 0; n < rawFfx.header->data2Count; ++n){
+         int address = baseAddress + n * 4;
+         int data2Pointer = *reinterpret_cast<int*>(&rawFfx.bytes[address]);
+         Data2Entry entry;
+         entry.originalAddress = address;
+         entry.pointerAddress = data2Pointer;
+         data2Entries.push_back(entry);
+      }
+   }
+
+   // Create Data3 info
+   {
+      int baseAddress = rawFfx.header->data2Start + rawFfx.header->data2Count * 4;
+      for(int n = 0; n < rawFfx.header->data3Count; ++n){
+         int address = baseAddress + n * 4;
+         int data3Pointer = *reinterpret_cast<int*>(&rawFfx.bytes[address]);
+         int* ip = reinterpret_cast<int*>(&rawFfx.bytes[data3Pointer]);
+         float* fp = reinterpret_cast<float*>(ip);
+
+         data3Entries.emplace_back();
+         Data3Entry& entry = data3Entries.back();
+         entry.originalAddress = address;
+         entry.pointerAddress = data3Pointer;
+         entry.type = *ip;
+         ++ip;
+         ++fp;
+
+         int endAddress = lines.back().address;
+         for(const Line& line : lines){
+            if(line.address > data3Pointer && line.address < endAddress && line.referencedBy.size() > 0){
+               endAddress = line.address;
+            }
+         }
+         for(const Data2Entry& data2Entry : data2Entries){
+            int data2Pointer = data2Entry.pointerAddress;
+            if(data2Pointer > data3Pointer && data2Pointer < endAddress){
+               endAddress = data2Pointer;
+            }
+         }
+
+         int paramCount = (endAddress - data3Pointer) / 4 - 1;
+         auto paramCheck = [&](int assumedParamCount) -> void{
+            if(paramCount != assumedParamCount){
+               wchar_t wBuffer[80];
+               swprintf(
+                  wBuffer,
+                  sizeof(wBuffer),
+                  L"Data3 type %d param count issue (assumed %d, actually %d)", entry.type, assumedParamCount, paramCount
+               );
+               ffxAssumptionWrong(path, wBuffer);
+            }
+         };
+         if(entry.type == 7){
+            paramCheck(1);
+            entry.params.emplace_back(fp[0]);
+         }else if(entry.type == 37){
+            if(ip[0] == 0 && paramCount != 3){
+               ffxAssumptionWrong(path, L"Data3 type 37 has no refFfxId but no mysterious trailing params");
+            }
+            for(int a = 0; a < paramCount; ++a){
+               entry.params.emplace_back(ip[a]);
+            }
+         }else if(entry.type == 70){
+            paramCheck(1);
+            entry.params.emplace_back(fp[0]);
+         }else if(entry.type == 81){
+            paramCheck(2);
+            entry.params.emplace_back(fp[0]);
+            entry.params.emplace_back(fp[1]);
+         }else if(entry.type == 136){
+            paramCheck(0);
+         }else for(int a = 0; a < paramCount; ++a){
+            entry.params.emplace_back(ip[a]);
+            entry.params.back().type = Param::Type::Unknown;
+         }
+
+         // Set "isData3" flag for each line
+         int lineIndexStart = 0;
+         for(; lineIndexStart < (int)lines.size(); ++lineIndexStart){
+            if(lines[lineIndexStart].address == data3Pointer){
+               break;
+            }
+         }
+         for(int l = lineIndexStart; l <= lineIndexStart + paramCount; ++l){
+            lines[l].isData3 = true;
+         }
+      }
+   }
+
+   // Reanalyze possible references. Yeah, I know, whatever.
+   for(Line& line : lines){
+      line.referencedBy.resize(0);
+      line.referencedLineIndex = 0;
+   }
+   for(const Data2Entry& data2Entry : data2Entries){
+      auto findResult = std::find_if(
+         lines.begin(),
+         lines.end(),
+         [&](Line& l) -> bool{return l.address == data2Entry.pointerAddress;}
+      );
+      if(findResult != lines.end()){
+         findResult->referencedBy.push_back(data2Entry.originalAddress);
+         int pointerIndex = findResult->index;
+
+         findResult = std::find_if(
+            lines.begin(),
+            lines.end(),
+            [&](Line& l) -> bool{return l.address == data2Entry.originalAddress;}
+         );
+         findResult->referencedLineIndex = pointerIndex;
+      }
+   }
+   for(const Data3Entry& data3Entry : data3Entries){
+      auto findResult = std::find_if(
+         lines.begin(),
+         lines.end(),
+         [&](Line& l) -> bool{return l.address == data3Entry.pointerAddress;}
+      );
+      if(findResult != lines.end()){
+         findResult->referencedBy.push_back(data3Entry.originalAddress);
+         int pointerIndex = findResult->index;
+
+         findResult = std::find_if(
+            lines.begin(),
+            lines.end(),
+            [&](Line& l) -> bool{return l.address == data3Entry.originalAddress;}
+         );
+         findResult->referencedLineIndex = pointerIndex;
+      }
+   }
+   for(Line& line : lines){
+      if((line.address < data2Entries[1].pointerAddress && line.address != 8) || line.address >= rawFfx.header->data2Start){
+         continue;
+      }
+
+      if(line.isInt && line.intValue > 4 && line.isData3 == false){
+         auto findResult = std::find_if(
+            lines.begin(),
+            lines.end(),
+            [&](Line& l) -> bool{return l.address == line.intValue;}
+         );
+         if(findResult != lines.end()){
+            findResult->referencedBy.push_back(line.address);
+            line.referencedLineIndex = findResult->index;
+         }
+      }
+   }
+
+   // Write the output to disk
+   auto outputValue = [&](std::string& outputText, const Line& line){
+      if(line.isString){
+         outputText += line.stringValue;
+      }else if(line.isFloat){
+         sprintf(sBuffer, "float %f", line.floatValue);
+         outputText += sBuffer;
+      }else if(line.isInt){
+         if(line.intValue == 0){
+            sprintf(sBuffer, "0");
+         }else{
+            sprintf(sBuffer, "int %d", line.intValue);
+         }
+         outputText += sBuffer;
+      }else{
+         throw;
+      }
+
+      if(line.isData3){
+         outputText += " (data3)";
+      }
+
+      if(line.referencedLineIndex != 0){
+         outputText += "*";
+      }
+
+      if(line.address == 264){
+         int bp=42;
+      }
+
+      for(int address : line.referencedBy){
+         sprintf(sBuffer, "  (<-- %d)", address);
+         outputText += sBuffer;
+      }
+   };
+   FILE* file = fopen("output.txt", "wb");
+   for(const Line& line : lines){
+      std::string outputText;
+
+      sprintf(sBuffer, "0x%05x %6d ", line.address, line.address);
+      outputText += sBuffer;
+      int addressTextSize = outputText.size();
+
+      outputValue(outputText, line);
+
+      // Output nested values
+      std::vector<int> currentlyProcessing;
+      int maxLoopCount = 10;
+      std::function<void(const Line&, int)> processLine;
+      processLine = [&](const Line& l, int loopCount){
+         if(l.isInt == false || l.referencedLineIndex == 0){
+            return;
+         }
+
+         if(loopCount >= maxLoopCount){
+            ffxResearchError(path, L"Recursion too deep");
+         }
+
+         if(std::find(currentlyProcessing.begin(), currentlyProcessing.end(), l.address) != currentlyProcessing.end()){
+            ffxResearchError(path, L"Reference loop >_>");
+         }
+         currentlyProcessing.push_back(l.address);
+
+         int firstLineIndex = l.referencedLineIndex;
+         int lastLineIndex = firstLineIndex;
+         while(
+            lastLineIndex + 1 < (int)lines.size() &&
+            lines[lastLineIndex + 1].referencedBy.size() == 0 &&
+            lines[lastLineIndex + 1].address != rawFfx.header->data2Start &&
+            lines[lastLineIndex + 1].address != rawFfx.header->data2Start + rawFfx.header->data2Count * 4
+         ){
+            ++lastLineIndex;
+         }
+         for(int lineIndex = firstLineIndex; lineIndex <= lastLineIndex; ++lineIndex){
+            outputText += "\n";
+            for(int n = 0; n < addressTextSize + (loopCount + 1) * 3; ++n){outputText += " ";}
+            outputValue(outputText, lines[lineIndex]);
+            lines[lineIndex].isPartOfReference = true;
+            processLine(lines[lineIndex], loopCount + 1);
+         }
+
+         currentlyProcessing.erase(std::find(
+            currentlyProcessing.begin(),
+            currentlyProcessing.end(),
+            l.address
+         ));
+      };
+      processLine(line, 0);
+
+      outputText += "\n";
+
+      if(line.address + 4 == rawFfx.header->data2Start){
+         outputText += "\n";
+         for(int a = 0; a < 3; ++a){
+            for(int b = 0; b < 100; ++b){outputText += "#";}
+            outputText += "\n";
+         }
+         outputText += "\nData2 pointers\n\n";
+      }
+      if(line.address + 4 == rawFfx.header->data2Start + rawFfx.header->data2Count * 4){
+         outputText += "\n";
+         for(int a = 0; a < 3; ++a){
+            for(int b = 0; b < 100; ++b){outputText += "#";}
+            outputText += "\n";
+         }
+         outputText += "\nData3 pointers\n\n";
+      }
+
+      fwrite(outputText.data(), 1, outputText.size(), file);
+   }
+
+   fclose(file);
+}
+
 int main(int argCount, char** args) {
    printf("Hello\n");
 
    //RawFfxFile rawFfx;
    //std::wstring path = L"C:/Projects/Dark Souls/FFX research/";
    //path += L"f0000482.ffx";
-   //loadRawFfxFile(path, &rawFfx);
+   //loadRawFfxFile(&rawFfx, path);
 
-   testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
+   //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
+
+   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   //path += L"f0013520.ffx";
+   path += L"f0000482.ffx";
+   //path += L"f0000480.ffx";
+   outputFfxAnalysis(path);
 }
