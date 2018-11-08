@@ -4,6 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <set>
 
 typedef unsigned char byte;
 
@@ -84,6 +85,8 @@ struct RawFfxFile{
    Header* header = 0;
    int* data2 = 0;
    int* data3 = 0;
+
+   int data3Start;
 };
 
 void loadRawFfxFile(RawFfxFile* rawFfx, const std::wstring& path){
@@ -125,6 +128,8 @@ void loadRawFfxFile(RawFfxFile* rawFfx, const std::wstring& path){
    rawFfx->header = reinterpret_cast<RawFfxFile::Header*>(&rawFfx->bytes[0]);
    rawFfx->data2 = reinterpret_cast<int*>(&rawFfx->bytes[rawFfx->header->data2Start]);
    rawFfx->data3 = rawFfx->data2 + rawFfx->header->data2Count;
+
+   rawFfx->data3Start = rawFfx->header->data2Start + rawFfx->header->data2Count * 4;
 
    fclose(file);
 }
@@ -453,6 +458,102 @@ struct Line{
    bool isData3 = false;
 };
 
+struct DataNode{
+   enum class Type{
+      Unknown,
+      Root,
+      Int,
+      Float,
+      String,
+      Pointer
+   };
+
+   union{
+      char s[4];
+      int i;
+      float f;
+   } u;
+   Type type = Type::Unknown;
+   Line* line = nullptr;
+   DataNode* parent = nullptr;
+   std::vector<DataNode*> children;
+
+   DataNode(){
+      this->type = Type::Root;
+   }
+
+   DataNode(int newValue, DataNode* newParent){
+      this->type = Type::Int;
+      this->u.i = newValue;
+      this->setParent(newParent);
+   }
+
+   DataNode(float newValue, DataNode* newParent){
+      this->type = Type::Float;
+      this->u.f = newValue;
+      this->setParent(newParent);
+   }
+
+   DataNode(char* newValue, DataNode* newParent){
+      this->type = Type::String;
+      memcpy(this->u.s, newValue, 4);
+      this->setParent(newParent);
+   }
+
+   void setParent(DataNode* newParent){
+      if(newParent == this){
+         throw;
+      }
+
+      auto& pc = newParent->children;
+      bool alreadyHasThisChild = std::find(pc.begin(), pc.end(), this) != pc.end();
+      if(alreadyHasThisChild){
+         printf("%d already has child %d\n", newParent->line->address, this->line->address);
+         return;
+         //throw;
+      }
+
+      if(this->parent){
+         auto& oldPC = this->parent->children;
+         oldPC.erase(std::find(oldPC.begin(), oldPC.end(), this));
+      }
+      this->parent = newParent;
+      this->parent->children.push_back(this);
+   }
+
+   void setParentMostDepth(DataNode* possibleNewParent, int data2Start, int data2End){
+      if(this->parent){
+         // Choose the parent with the most depth
+         int oldParentDepth = this->parent->getDepth();
+         int newParentDepth = possibleNewParent->getDepth();
+         if(newParentDepth == oldParentDepth){
+            // If they're the same depth, choose the parent that's a data2
+            //int addr = this->parent->line->address;
+            //bool isOldParentData2 = addr >= data2Start && addr <= data2End;
+            int addr = possibleNewParent->line->address;
+            bool isNewParentData2 = addr >= data2Start && addr <= data2End;
+            if(isNewParentData2 == false){
+               return;
+            }
+         }else if(newParentDepth < oldParentDepth){
+            return;
+         }
+      }
+
+      this->setParent(possibleNewParent);
+   }
+
+   int getDepth(){
+      DataNode* current = this->parent;
+      int depth = -1;
+      while(current){
+         current = current->parent;
+         ++depth;
+      }
+      return depth;
+   }
+};
+
 void outputFfxAnalysis(std::wstring path){
    std::vector<Line> lines; // Each 4 bytes is a line
    std::vector<Data2Entry> data2Entries;
@@ -535,7 +636,7 @@ void outputFfxAnalysis(std::wstring path){
 
    // Create Data3 info
    {
-      int baseAddress = rawFfx.header->data2Start + rawFfx.header->data2Count * 4;
+      int baseAddress = rawFfx.data3Start;
       for(int n = 0; n < rawFfx.header->data3Count; ++n){
          int address = baseAddress + n * 4;
          int data3Pointer = *reinterpret_cast<int*>(&rawFfx.bytes[address]);
@@ -665,13 +766,17 @@ void outputFfxAnalysis(std::wstring path){
             [&](Line& l) -> bool{return l.address == line.intValue;}
          );
          if(findResult != lines.end()){
-            findResult->referencedBy.push_back(line.address);
-            line.referencedLineIndex = findResult->index;
+            // Don't reference the early data between ~32 and the second data2
+            if(findResult->address >= rawFfx.data2[1] || line.address <= rawFfx.data2[1]){
+               findResult->referencedBy.push_back(line.address);
+               line.referencedLineIndex = findResult->index;
+            }
          }
       }
    }
 
    // Write the output to disk
+
    auto outputValue = [&](std::string& outputText, const Line& line){
       if(line.isString){
          outputText += line.stringValue;
@@ -706,7 +811,9 @@ void outputFfxAnalysis(std::wstring path){
          outputText += sBuffer;
       }
    };
+
    FILE* file = fopen("output.txt", "wb");
+
    for(const Line& line : lines){
       std::string outputText;
 
@@ -740,7 +847,7 @@ void outputFfxAnalysis(std::wstring path){
             lastLineIndex + 1 < (int)lines.size() &&
             lines[lastLineIndex + 1].referencedBy.size() == 0 &&
             lines[lastLineIndex + 1].address != rawFfx.header->data2Start &&
-            lines[lastLineIndex + 1].address != rawFfx.header->data2Start + rawFfx.header->data2Count * 4
+            lines[lastLineIndex + 1].address != rawFfx.data3Start
          ){
             ++lastLineIndex;
          }
@@ -770,7 +877,7 @@ void outputFfxAnalysis(std::wstring path){
          }
          outputText += "\nData2 pointers\n\n";
       }
-      if(line.address + 4 == rawFfx.header->data2Start + rawFfx.header->data2Count * 4){
+      if(line.address + 4 == rawFfx.data3Start){
          outputText += "\n";
          for(int a = 0; a < 3; ++a){
             for(int b = 0; b < 100; ++b){outputText += "#";}
@@ -779,8 +886,204 @@ void outputFfxAnalysis(std::wstring path){
          outputText += "\nData3 pointers\n\n";
       }
 
-      fwrite(outputText.data(), 1, outputText.size(), file);
+      //fwrite(outputText.data(), 1, outputText.size(), file);
    }
+
+   /////////////////////////////////////////////////////////////////////////////////////////////////
+   // Generate DataNode tree
+
+   std::vector<std::pair<int, DataNode*>> lineIndexToDataNode;
+   DataNode* root = new DataNode;
+   //std::set<DataNode*> dataNodesProcessed;
+
+   auto getPair = [&](int lineIndex) -> std::pair<int, DataNode*>&{
+      auto findResult = std::find_if(
+         lineIndexToDataNode.begin(),
+         lineIndexToDataNode.end(),
+         [&](std::pair<int, DataNode*> p) -> bool{return p.first == lineIndex;}
+      );
+      if(findResult != lineIndexToDataNode.end()){
+         return *findResult;
+      }else{
+         throw;
+      }
+   };
+
+   // Populate lineIndexToDataNode
+   for(Line& line : lines){
+      // Skip data2 and data3 pointers
+      //if(line.address >= rawFfx.header->data2Start + rawFfx.header->data2Count * 4){
+      //if(line.address >= rawFfx.header->data2Start){
+      //   continue;
+      //}
+
+      DataNode* newNode;
+      if(line.isString){
+         newNode = new DataNode(line.stringValue, root);
+      }else if(line.isInt){
+         newNode = new DataNode(line.intValue, root);
+      }else if(line.isFloat){
+         newNode = new DataNode(line.floatValue, root);
+      }
+      newNode->line = &line;
+
+      lineIndexToDataNode.emplace_back(line.index, newNode);
+   }
+
+   // Set up parents and children for all nodes
+   std::set<DataNode*> dataNodesProcessing;
+   std::function<void(DataNode*)> processNode;
+   processNode = [&](DataNode* node) -> void{
+      if(dataNodesProcessing.count(node) != 0){
+         ffxResearchError(path, L"Node is already being processed");
+      }
+      dataNodesProcessing.insert(node);
+
+      int refIndex = node->line->referencedLineIndex;
+      if(refIndex != 0){
+         int firstIndex = refIndex;
+         int lastIndex = firstIndex;
+         while(
+            lastIndex + 1 < (int)lines.size() &&
+            lines[lastIndex + 1].referencedBy.size() == 0 &&
+            lines[lastIndex + 1].address != rawFfx.header->data2Start &&
+            lines[lastIndex + 1].address != rawFfx.data3Start
+         ){
+            ++lastIndex;
+         }
+         for(int i = firstIndex; i <= lastIndex; ++i){
+            DataNode* newChild = getPair(i).second;
+            newChild->setParentMostDepth(
+               node,
+               rawFfx.header->data2Start,
+               rawFfx.data3Start
+            );
+            processNode(newChild);
+         }
+      }
+
+      dataNodesProcessing.erase(node);
+   };
+   std::vector<DataNode*> childrenCopy = root->children;
+   for(DataNode* child : childrenCopy){
+      if(child->line->address == 300){
+         printf("%d\n", child->getDepth());
+      }
+      processNode(child);
+   }
+
+   std::string outputText;
+
+   outputText += "\n\n";
+   outputText += "################################################################################\n";
+   outputText += "DataNode approach\n";
+   outputText += "\n";
+
+   // Output dataNode structure
+
+   int addressTextSize = sprintf(sBuffer, "0x%05x %6d ", 0, 0);
+
+   std::function<void(DataNode*, int)> outputNode;
+   outputNode = [&](DataNode* node, int depth) -> void{
+      if(node->line->address == rawFfx.header->data2Start){
+         outputText += "\n------------------------------\nData2\n\n";
+      }
+      if(node->line->address == rawFfx.data3Start){
+         outputText += "\n------------------------------\nData3\n\n";
+      }
+
+      if(depth == 0){
+         sprintf(sBuffer, "0x%05x %6d ", node->line->address, node->line->address);
+         outputText += sBuffer;
+      }else{
+         for(int s = 0; s < addressTextSize; ++s) outputText += ' ';
+         for(int d = 0; d < depth; ++d){
+            outputText += "   ";
+         }
+      }
+
+      if(node->type == DataNode::Type::String){
+         outputText += node->u.s;
+      }else if(node->type == DataNode::Type::Int){
+         if(node->u.i == 0){
+            sprintf(sBuffer, "0");
+         }else if(node->line->referencedLineIndex != 0){
+            sprintf(sBuffer, "int %d*", node->u.i);
+         }else{
+            sprintf(sBuffer, "int %d", node->u.i);
+         }
+         outputText += sBuffer;
+      }else if(node->type == DataNode::Type::Float){
+         sprintf(sBuffer, "float %f", node->u.f);
+         outputText += sBuffer;
+      }
+
+      if(node->getDepth() == 0 && node->line->referencedLineIndex == 0 && node->line->address > 8){
+         sprintf(sBuffer, "  (Orphan?)");
+         outputText += sBuffer;
+      }
+
+      for(int refLineAddress : node->line->referencedBy){
+         auto findResult = std::find_if(
+            lines.begin(),
+            lines.end(),
+            [&](Line& l) -> bool{return l.address == refLineAddress;}
+         );
+         int refLineIndex = findResult->index;
+         DataNode* refNode = getPair(refLineIndex).second;
+         if(refNode->line->referencedLineIndex != 0){
+            if(refNode->line->address >= rawFfx.data3Start){
+               outputText += "  (<-- data3)";
+            }else if(refNode->line->address >= rawFfx.header->data2Start){
+               outputText += "  (<-- data2)";
+            }
+         }
+      }
+
+      if(node->line->referencedBy.size() > 1){
+         for(int refLineAddress : node->line->referencedBy){
+            auto findResult = std::find_if(
+               lines.begin(),
+               lines.end(),
+               [&](Line& l) -> bool{return l.address == refLineAddress;}
+            );
+            int refLineIndex = findResult->index;
+            DataNode* refNode = getPair(refLineIndex).second;
+            if(refNode->children.empty() && refNode->line->referencedLineIndex != 0){
+               if(refNode->line->address < rawFfx.data3Start){
+                  sprintf(sBuffer, "  (<-- Middle ref from %d)", refNode->line->address);
+                  outputText += sBuffer;
+               }
+            }
+         }
+      }
+
+      if(node->children.empty() && node->line->referencedLineIndex != 0){
+         DataNode* current = getPair(node->line->referencedLineIndex).second;
+         while(current->parent != root){
+            current = current->parent;
+         }
+         if(node->u.i > rawFfx.data2[1]){
+            sprintf(sBuffer, "  (--> REFERENCE TO MIDDLE OF %d)", current->u.i);
+            outputText += sBuffer;
+
+            outputText += '\n';
+            DataNode* ref = getPair(node->line->referencedLineIndex).second;
+            outputNode(ref, depth + 1);
+         }
+      }else{
+         outputText += "\n";
+      }
+
+      for(DataNode* child : node->children){
+         outputNode(child, depth + 1);
+      }
+   };
+   for(DataNode* child : root->children){
+      outputNode(child, 0);
+   }
+
+   fwrite(outputText.data(), 1, outputText.size(), file);
 
    fclose(file);
 }
@@ -796,8 +1099,9 @@ int main(int argCount, char** args) {
    //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
    std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
-   //path += L"f0013520.ffx";
-   path += L"f0000482.ffx";
+   path += L"f0013520.ffx";
+   //path += L"f0000482.ffx";
    //path += L"f0000480.ffx";
+   //path += L"f0002101.ffx";
    outputFfxAnalysis(path);
 }
