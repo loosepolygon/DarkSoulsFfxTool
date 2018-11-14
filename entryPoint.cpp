@@ -402,11 +402,214 @@ void testEveryFfx(std::wstring dir){
          if(p[13] != 0 || p[14] != 0 || p[15] != 0 || p[16] != 65536 || p[17] != 0 || p[18] != 0){
             ffxAssumptionWrong(path, L"Pre-data value unfamiliar");
          }
-      }while(false);
+      }while(false); // wtf?
+
+
+      // Test similar data found near the start of 13520 and 482
+
+      if(rawFfx.header->ffxId == 13520){
+         int bp=42;
+      }
+
+      auto getIP = [&](int address) -> int*{
+         return reinterpret_cast<int*>(&rawFfx.bytes[address]);
+      };
+
+      int* ip = getIP(rawFfx.data2[1]);
+      int house = ip[0];
+      int ostrich = ip[1];
+
+      if(ostrich != 1 && ostrich != 2 && ostrich != 3 && ostrich != 4 && ostrich != 5 && ostrich != 7){
+         ffxAssumptionWrong(path, L"ostrich is unfamiliar");
+      }
+
+      ip = getIP(house);
+      int crepe1 = ip[0];
+      int crepe2 = ip[1];
+      int tulip1 = ip[2];
+      int tulip2 = ip[3];
+
+      if(crepe1 == 0){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(crepe2 < 16 || tulip1 != 0 || tulip2 != 1){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(crepe1 < 16){
+         ffxAssumptionWrong(path, L"?");
+      }
+
+      if(crepe2 == 0){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe1 < 16 ||
+            (tulip1 != 1 && tulip1 != 2) ||
+            tulip2 != 0
+         ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(crepe2 < 16){
+         ffxAssumptionWrong(path, L"?");
+      }
+
+      if(tulip1 == 0){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe1 != 0 ||
+            crepe2 < 16 ||
+            tulip2 != 1
+            ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip1 == 1){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe1 < 16 ||
+            (tulip2 != 0 && tulip2 != 1 && tulip2 != 2)
+            ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip1 == 2){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(tulip2 != 0 && tulip2 != 1){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip1 > 16){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(crepe1 < 16 || crepe2 < 16 || tulip2 < 16){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }
+
+      if(tulip2 == 0){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(crepe1 < 16 || crepe2 != 0 || (tulip1 != 1 && tulip1 != 2)){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip2 == 1){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe2 < 16 ||
+            (tulip1 != 0 && tulip1 != 1 && tulip1 != 2 && tulip1 != 5) // Uhhhh
+         ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip2 == 2){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe1 < 16 ||
+            crepe2 < 16 ||
+            tulip1 != 1
+          ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }else if(tulip2 > 16){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(
+            crepe1 < 16 ||
+            crepe2 < 16 ||
+            tulip1 < 16
+          ){
+            ffxAssumptionWrong(path, L"?");
+         }
+      }
+
+
+      if(ostrich == 1){
+         bool hasSomeOffset = tulip1 != 0;
+         if(hasSomeOffset){
+            //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+            if(tulip1 < 16 || tulip2 < 16){
+               ffxAssumptionWrong(path, L"Ostrich 1, with offset");
+            }
+         }else{
+            if(tulip2 != 1){
+               ffxAssumptionWrong(path, L"Ostrich 1, no offset");
+            }
+         }
+
+         if(crepe1 - house > 0){
+            ffxAssumptionWrong(path, L"Ostrich 1");
+         }
+      }else if(ostrich == 2){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+
+         if(tulip1 != 1 || (tulip2 != 1 && tulip2 != 2)){
+            ffxAssumptionWrong(path, L"Ostrich 2");
+         }
+
+         if(crepe1 - house != 32){
+            ffxAssumptionWrong(path, L"Ostrich 2");
+         }
+      }else if(ostrich == 3){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+
+         // Usually very negative but two instances of 48 ????????
+         //printf("crepe1 - house == %d\n", crepe1 - house);
+         //printf("house = %d, crepe1 = %d\n", house, crepe1);
+
+         //printf("crepe1 - house == %d, crepe1 = %d\n", crepe1 - house, crepe1);
+
+      }else if(ostrich == 4){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+
+         // Negative (once) or 64
+         //printf("crepe1 - house == %d\n", crepe1 - house);
+      }else if(ostrich == 5){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+
+         // 80
+         //printf("crepe1 - house == %d\n", crepe1 - house);
+      }else if(ostrich == 7){
+         //printf("(%d, %d), (%d, %d)\n", crepe1, crepe2, tulip1, tulip2);
+         if(tulip1 != 5){
+            ffxAssumptionWrong(path, L"Ostrich 2");
+         }
+
+         // 112
+         //printf("crepe1 - house == %d\n", crepe1 - house);
+      }
+
+
+      if(crepe1 != 0){
+         ip = getIP(crepe1);
+         int monkey = ip[0];
+
+         bool isMonkeyValidAddress = monkey > 16 && monkey % 4 == 0;
+         
+         if(ostrich == 1){
+            if(monkey != 1 && monkey != 37){
+               ffxAssumptionWrong(path, L"crepe1 data");
+            }
+         }else if(ostrich == 2){
+            // Offset
+            //printf("%d\n", monkey);
+            if(isMonkeyValidAddress == false){
+               ffxAssumptionWrong(path, L"crepe1 data");
+            }
+         }else if(ostrich == 3){
+            // 1, 352, 328, but mostly 133 (??????)
+         }else if(ostrich == 4){
+            // 1 or an offset
+         }else if(ostrich == 5){
+            // Offset
+         }else if(ostrich == 7){
+            // Offset (same as 5)
+         }
+
+         if(isMonkeyValidAddress){
+            if(tulip1 > 16 || tulip2 > 16){
+               ffxAssumptionWrong(path, L"monkey");
+            }
+         }else{
+            if(tulip1 < 16 || tulip2 < 16){
+               ffxAssumptionWrong(path, L"monkey");
+            }
+         }
+      }
    }
 
-   wprintf_s(L"minSecondData2Pointer = %d '%s'\n", minSecondData2Pointer, minSecondData2PointerPath.c_str());
-   wprintf_s(L"maxSecondData2Pointer = %d '%s'\n", maxSecondData2Pointer, maxSecondData2PointerPath.c_str());
+   //wprintf_s(L"minSecondData2Pointer = %d '%s'\n", minSecondData2Pointer, minSecondData2PointerPath.c_str());
+   //wprintf_s(L"maxSecondData2Pointer = %d '%s'\n", maxSecondData2Pointer, maxSecondData2PointerPath.c_str());
 }
 
 struct Data2Entry{
@@ -551,6 +754,56 @@ struct DataNode{
          ++depth;
       }
       return depth;
+   }
+};
+
+// Struct analysis
+
+struct SAValue{
+   enum class Type{
+      Unknown,
+      Int,
+      Float,
+      String,
+      Pointer
+   };
+
+   //union{
+   //   char s[4];
+   //   int i;
+   //   float f;
+   //} u;
+   Type type = Type::Unknown;
+   Line* line;
+
+   SAValue(Line* line) : line(line){
+      if(line->isString) this->type = Type::String;
+      if(line->isFloat) this->type = Type::Float;
+
+      if(line->isInt){
+         if(line->referencedLineIndex != 0){
+            this->type = Type::Pointer;
+         }else{
+            this->type = Type::Int;
+         }
+      }
+   }
+};
+
+struct SAStruct{
+   std::vector<SAValue> values;
+
+   bool compare(SAStruct* other){
+      if(this->values.size() != other->values.size()) return false;
+
+      for(size_t n = 0; n < this->values.size(); ++n){
+         const SAValue& v1 = this->values[n];
+         const SAValue& v2 = other->values[n];
+
+         if(v1.type != v2.type) return false;
+      }
+
+      return true;
    }
 };
 
@@ -802,10 +1055,6 @@ void outputFfxAnalysis(std::wstring path){
          outputText += "*";
       }
 
-      if(line.address == 264){
-         int bp=42;
-      }
-
       for(int address : line.referencedBy){
          sprintf(sBuffer, "  (<-- %d)", address);
          outputText += sBuffer;
@@ -886,8 +1135,80 @@ void outputFfxAnalysis(std::wstring path){
          outputText += "\nData3 pointers\n\n";
       }
 
-      //fwrite(outputText.data(), 1, outputText.size(), file);
+      fwrite(outputText.data(), 1, outputText.size(), file);
    }
+
+   /////////////////////////////////////////////////////////////////////////////////////////////////
+   // Struct analysis
+
+   {
+      // Struct, count
+      std::vector<std::pair<SAStruct, int>> structs;
+      SAStruct currentStruct;
+      for(Line& line : lines){
+         if(line.referencedBy.empty() || currentStruct.values.empty()){
+            currentStruct.values.emplace_back(&line);
+         }else{
+            if(currentStruct.values.size() > 0){
+               bool alreadyExists = false;
+               for(auto& pair : structs){
+                  if(currentStruct.compare(&pair.first)){
+                     alreadyExists = true;
+
+                     ++pair.second;
+
+                     break;
+                  }
+               }
+               if(alreadyExists == false){
+                  structs.emplace_back(currentStruct, 1);
+               }
+
+               currentStruct = SAStruct();
+               currentStruct.values.emplace_back(&line);
+            }else{
+               printf("Empty struct (address %d)\n", line.address);
+            }
+         }
+      }
+
+      std::string outputText;
+
+      outputText += "\n\n\n\n\n\n\n\n\n\n\n";
+      outputText += "################################################################################\n";
+      outputText += "Struct analysis approach, straight\n";
+      outputText += "\n";
+
+      sprintf(sBuffer, "%d unique structs found\n\n", structs.size());
+      outputText += sBuffer;
+
+      // Sort by value count?
+
+      int index = 0;
+      for(auto& pair : structs){
+         sprintf(sBuffer, "Struct #%d, count %d  (first address = %d)\n", index++, pair.second, pair.first.values[0].line->address);
+         outputText += sBuffer;
+
+         for(SAValue& value : pair.first.values){
+            outputText += "   ";
+
+            if(value.type == SAValue::Type::String){
+               outputText += "string";
+            }else if(value.type == SAValue::Type::Int){
+               outputText += "int";
+            }else if(value.type == SAValue::Type::Float){
+               outputText += "float";
+            }else if(value.type == SAValue::Type::Pointer){
+               outputText += "Pointer";
+            }
+
+            outputText += "\n";
+         }
+      }
+
+      fwrite(outputText.data(), 1, outputText.size(), file);
+   }
+
 
    /////////////////////////////////////////////////////////////////////////////////////////////////
    // Generate DataNode tree
@@ -974,7 +1295,7 @@ void outputFfxAnalysis(std::wstring path){
 
    std::string outputText;
 
-   outputText += "\n\n";
+   outputText += "\n\n\n\n\n\n\n\n\n\n\n";
    outputText += "################################################################################\n";
    outputText += "DataNode approach\n";
    outputText += "\n";
@@ -985,6 +1306,10 @@ void outputFfxAnalysis(std::wstring path){
 
    std::function<void(DataNode*, int)> outputNode;
    outputNode = [&](DataNode* node, int depth) -> void{
+      if(node->line->referencedLineIndex == 2188 / 4){
+         int bp=42;
+      }
+
       if(node->line->address == rawFfx.header->data2Start){
          outputText += "\n------------------------------\nData2\n\n";
       }
@@ -1064,15 +1389,20 @@ void outputFfxAnalysis(std::wstring path){
             current = current->parent;
          }
          if(node->u.i > rawFfx.data2[1]){
+            DataNode* ref = getPair(node->line->referencedLineIndex).second;
+
             sprintf(sBuffer, "  (--> REFERENCE TO MIDDLE OF %d)", current->u.i);
             outputText += sBuffer;
 
             outputText += '\n';
-            DataNode* ref = getPair(node->line->referencedLineIndex).second;
-            outputNode(ref, depth + 1);
+            for(DataNode* child : ref->parent->children){
+               outputNode(child, depth + 1);
+            }
+         }else{
+            outputText += '\n';
          }
       }else{
-         outputText += "\n";
+         outputText += '\n';
       }
 
       for(DataNode* child : node->children){
@@ -1086,6 +1416,9 @@ void outputFfxAnalysis(std::wstring path){
    fwrite(outputText.data(), 1, outputText.size(), file);
 
    fclose(file);
+
+   sprintf(sBuffer, "cp output.txt %d.txt", rawFfx.header->ffxId);
+   system(sBuffer);
 }
 
 int main(int argCount, char** args) {
@@ -1096,12 +1429,11 @@ int main(int argCount, char** args) {
    //path += L"f0000482.ffx";
    //loadRawFfxFile(&rawFfx, path);
 
-   //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
+   testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
-   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
-   path += L"f0013520.ffx";
-   //path += L"f0000482.ffx";
-   //path += L"f0000480.ffx";
-   //path += L"f0002101.ffx";
-   outputFfxAnalysis(path);
+   //std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   //path += L"f0013520.ffx";
+   ////path += L"f0000482.ffx";
+   ////path += L"f0014423.ffx";
+   //outputFfxAnalysis(path);
 }
