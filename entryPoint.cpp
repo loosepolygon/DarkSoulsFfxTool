@@ -8,6 +8,39 @@
 
 typedef unsigned char byte;
 
+
+template<typename TArray, typename TElement>
+bool includes(const TArray& arr, TElement element){
+   return std::find(std::begin(arr), std::end(arr), element) != std::end(arr);
+}
+
+template<typename TArray>
+int findIndex(const TArray& arr, decltype(arr[0]) element){
+   int findResult = -1;
+   for(int n = 0; n < (int)std::size(arr); ++n){
+      if(arr[n] == element){
+         findResult = n;
+         break;
+      }
+   }
+
+   return findResult;
+}
+
+template<typename TArray>
+int findIndex(const TArray& arr, std::function<bool(decltype(arr[0]))> lambda){
+   int findResult = -1;
+   for(int n = 0; n < (int)std::size(arr); ++n){
+      if(lambda(arr[n])){
+         findResult = n;
+         break;
+      }
+   }
+
+   return findResult;
+}
+
+
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
@@ -15,26 +48,12 @@ void ffxReadError(const std::wstring& path, const std::wstring& text){
 }
 
 void ffxAssumptionWrong(const std::wstring& path, const std::wstring& text){
-   const wchar_t* filePath = &path[path.size() - 1];
-   while(--filePath != path.data()){
-      if(*filePath == L'/'){
-         ++filePath;
-         break;
-      }
-   }
    std::wstring errorMessage = L"FFX assumption proved wrong for file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
    throw;
 }
 
 void ffxResearchError(const std::wstring& path, const std::wstring& text){
-   const wchar_t* filePath = &path[path.size() - 1];
-   while(--filePath != path.data()){
-      if(*filePath == L'/'){
-         ++filePath;
-         break;
-      }
-   }
    std::wstring errorMessage = L"Error for file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
    throw;
@@ -134,8 +153,19 @@ void loadRawFfxFile(RawFfxFile* rawFfx, const std::wstring& path){
    fclose(file);
 }
 
+struct AxisThingStruct{
+   int address = 0;
+   int pond1 = 0;
+   int moose1 = 0;
+   int moose2 = 0;
+   int axisThing = 0;
+   int pond2 = 0;
+   int pond3 = 0;
+};
+
 void testEveryFfx(std::wstring dir){
    std::vector<std::wstring> fileList;
+   std::set<int> ffxIdSet;
    {
       std::wstring fileListPath = dir + L"fileList.txt";
       FILE* file = _wfopen(fileListPath.c_str(), L"r");
@@ -156,6 +186,18 @@ void testEveryFfx(std::wstring dir){
       std::wstring item;
       while (std::getline(ss, item, L'\n')) {
          fileList.push_back(item);
+
+         const wchar_t* filePath = &item[item.size() - 1];
+         while(--filePath != item.data()){
+            if(*filePath == L'/'){
+               ++filePath;
+               break;
+            }
+         }
+         std::wstring idText = filePath + 1;
+         idText.resize(idText.size() - 4);
+         int id = _wtoi(idText.c_str());
+         ffxIdSet.insert(id);
       }
    }
 
@@ -167,6 +209,7 @@ void testEveryFfx(std::wstring dir){
    std::wstring maxSecondData2PointerPath;
    std::vector<std::pair<int, int>> preDataSizeCounts;
    std::vector<std::vector<std::pair<int, int>>> preDataValues;
+   std::vector<std::pair<int, int>> mooseStats;
    for(const std::wstring& path : fileList){
       //wprintf_s(L"File %d/%d\n", index, fileList.size());
       ++index;
@@ -405,6 +448,7 @@ void testEveryFfx(std::wstring dir){
       }while(false); // wtf?
 
 
+      //////////////////////////////////////////////////////////////////////////
       // Test similar data found near the start of 13520 and 482
 
       if(rawFfx.header->ffxId == 13520){
@@ -601,15 +645,388 @@ void testEveryFfx(std::wstring dir){
                ffxAssumptionWrong(path, L"monkey");
             }
          }else{
+            //printf("%d  -  %d, %d\n", monkey, tulip1, tulip2);
             if(tulip1 < 16 || tulip2 < 16){
                ffxAssumptionWrong(path, L"monkey");
             }
          }
       }
+
+
+      // ostrich 2 specific testing
+
+      if(ostrich == 2){
+         // Always has crepe1 and crepe2 offsets
+         // tulip1 is 1 and tulip2 is 1, sometimes 2
+         // crepe1 is always 32 bytes after house
+         // monkeyTail is always 16 bytes before monkey
+
+         if(tulip1 == 1 && tulip2 == 1){
+            // crepe1, monkey
+
+            ip = getIP(crepe1);
+            int monkey = ip[0];
+            int turtle = ip[1];
+
+
+            if(monkey - crepe1 != -16){
+               ffxAssumptionWrong(path, L"monkey - crepe1");
+            }
+
+            ip = getIP(monkey);
+            int monkeyTail1 = ip[0];
+            int monkeyTail2 = ip[1];
+            int monkeyTail3 = ip[2];
+            int monkeyTail4 = ip[3];
+
+            if(monkeyTail1 != 0){
+               ffxAssumptionWrong(path, L"monkeyTail1");
+            }
+            if(monkeyTail2 < 16){
+               ffxAssumptionWrong(path, L"monkeyTail2");
+            }
+            if(monkeyTail2 - monkey != 52){
+               ffxAssumptionWrong(path, L"monkeyTail2 - monkey");
+            }
+            if(monkeyTail3 != 0){
+               ffxAssumptionWrong(path, L"monkeyTail3");
+            }
+            if(monkeyTail4 != 1){
+               ffxAssumptionWrong(path, L"monkeyTail4");
+            }
+
+            ip = getIP(monkeyTail2);
+            int hair1 = ip[0];
+
+            if(
+               hair1 != 5 ||
+               ip[1] != 0 ||
+               ip[2] != 0 ||
+               ip[3] != 0 ||
+               ip[4] != 65536 ||
+               ip[5] != 0
+            ){
+               ffxAssumptionWrong(path, L"hair");
+            }
+
+            // turtle
+
+            if(turtle < 16){
+               ffxAssumptionWrong(path, L"turtle");
+            }
+
+            ip = getIP(turtle);
+            int turtleEgg = ip[0];
+
+            if(turtleEgg != 136){
+               ffxAssumptionWrong(path, L"turtleEgg");
+            }
+
+            // crepe2, blossom
+
+            ip = getIP(crepe2);
+            int blossom1 = ip[0];
+            int blossom2 = ip[1];
+            int moose1 = ip[2];
+            int moose2 = ip[3];
+            int dirt1 = ip[4];
+            int dirt2 = ip[5];
+            int ghast = ip[6];
+
+            if(blossom1 != 14 && blossom1 != 17 && blossom1 != 79 && blossom1 != 87){
+               ffxAssumptionWrong(path, L"blossom1");
+            }
+            if(blossom2 != 0 && blossom2 < 16){
+               ffxAssumptionWrong(path, L"blossom2");
+            }
+            if(blossom2 != 0){
+               ip = getIP(blossom2);
+
+               ip = getIP(ip[0]);
+               int type = ip[0];
+               int sfxId = ip[1];
+               if(type != 37 || (sfxId != 0 && ffxIdSet.count(sfxId) == 0)){
+                  //ffxAssumptionWrong(path, L"type 37");
+                  //printf("%d not found\n", sfxId);
+               }
+            }
+
+
+            if(moose1 != moose2){
+               ffxAssumptionWrong(path, L"meese differ");
+            }
+            if(moose1 != 0 && moose1 != 1 && moose1 != 8 && moose1 != 16){
+               ffxAssumptionWrong(path, L"meese unfamiliar");
+            }
+
+            if(dirt1 != 65536 || dirt2 != 0){
+               ffxAssumptionWrong(path, L"dirts unfamiliar");
+            }
+
+            if(ghast != 0 && (ghast < 16 || ghast % 4 != 0)){
+               ffxAssumptionWrong(path, L"ghast");
+            }
+            if(ghast != 0){
+               ip = getIP(ghast);
+               int gas1 = ip[0];
+               int gas2 = ip[1];
+
+               if(gas1 != 0){
+                  ffxAssumptionWrong(path, L"gas1");
+               }
+               if(gas2 < 0 || gas2 > 13){
+                  ffxAssumptionWrong(path, L"gas2");
+               }
+               if(gas2 != 0 && gas2 != 1 && gas2 != 2 && gas2 != 3 && gas2 != 4 && gas2 != 5 && gas2 != 6 && gas2 != 7 && gas2 != 8 && gas2 != 9 && gas2 != 10 && gas2 != 11 && gas2 != 13){
+                  ffxAssumptionWrong(path, L"gas2");
+               }
+            }
+
+
+         }
+      }
+
+      // Start address vs ostrich testing
+
+      int secondData2 = rawFfx.data2[1];
+      if(ostrich == 1 && secondData2 != 96){
+         //ffxAssumptionWrong(path, L"secondData2 ostrich 1");
+         //printf("%d, %d, %d\n", ostrich, secondData2, rawFfx.header->ffxId);
+      }else if(ostrich == 2 && secondData2 != 120){
+         ffxAssumptionWrong(path, L"secondData2 ostrich 2");
+      }else{
+         //printf("%d, %d\n", ostrich, secondData2);
+      }
+
+
+      // Axis number (65536 etc)
+
+      int axisThingCount = 0;
+      // If nothing references the axisThing struct, the value is still 0
+      std::vector<std::vector<int>> refStuff;
+      std::vector<AxisThingStruct> axisThings;
+      
+      int ffxIdsToOutput[] = {482, 511, 13520, 2023, 120034};
+      bool isFfxSelected = includes(ffxIdsToOutput, rawFfx.header->ffxId);
+
+      for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
+         int* ip = getIP(b);
+         if(ip[0] == 0x00010000 || ip[0] == 0x00010100 || ip[0] == 0x00010101){
+         //if(ip[0] > 65000 && ip[0] < 70000){
+            //int unk1 = ip[-4];
+            int pond1 = ip[-3];
+            int moose1 = ip[-2];
+            int moose2 = ip[-1];
+            int axisThing = ip[0];
+            int pond2 = ip[1];
+            int pond3 = ip[2];
+
+            if(rawFfx.header->ffxId != 170006){
+               if(moose1 != moose2){
+                  ffxAssumptionWrong(path, L"axis thing, meese not equal");
+               }
+            }
+
+            int findResult = findIndex(mooseStats, [&](auto pair) -> bool{return pair.first == moose1;});
+            if(findResult == -1){
+               findResult = mooseStats.size();
+               mooseStats.emplace_back(moose1, 0);
+            }
+            ++mooseStats[findResult].second;
+
+            //if(moose1 == 64){
+            //   printf("%d\n", rawFfx.header->ffxId);
+            //}
+
+            // moose seems to be a type
+            if(moose1 == 1){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 2){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 3){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 4){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 5){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 6){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 7){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 8){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 9){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 11){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 12){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 13){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 15){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 16){
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 18){
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 64){
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }
+
+            //if(axisThing != 65536){
+            //   //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
+            //   printf("weird axis thing ---------------- %d\n", moose1);
+            //}
+            if(axisThing != 65536){
+               //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
+               //printf("weird axis thing ---------------- %d\n", moose1);
+            }
+            
+            //if(axisThing != 65536){
+            //   byte* atB = (byte*)(&axisThing);
+            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
+            //   int at2 = axisThing - 65536;
+            //   if(at2 != 1 && at2 != 256 && at2 != 257){
+            //      printf("%d\n", axisThing - 65536);
+            //   }
+            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
+            //}
+
+            bool isPond1Zero = pond1 == 0;
+            bool isMooseZero = moose1 == 0;
+            if(isPond1Zero != isMooseZero){
+               ffxAssumptionWrong(path, L"pond1 and moose");
+            }
+
+            if(pond2 != 0){
+               if(pond1 != 0 || pond3 != 0){
+                  ffxAssumptionWrong(path, L"pond2");
+               }
+            }
+
+            if(axisThing != 65536){
+               if(pond1 == 0 || moose1 == 0 || pond2 != 0){
+                  ffxAssumptionWrong(path, L"weird axisThing");
+               }
+            }
+
+            if(pond1 != 0){
+               if(pond1 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond1 wrong direction");
+               }
+            }
+            if(pond2 != 0){
+               if(pond2 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond2 wrong direction");
+               }
+            }
+            if(pond3 != 0){
+               if(pond3 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond3 wrong direction");
+               }
+            }
+
+            if(pond3 != 0){
+               if(pond1 == 0){
+                  ffxAssumptionWrong(path, L"pond3");
+               }
+            }
+
+
+            if(pond3){
+               //printf("%d\n", pond3 - b);
+            }
+            if(pond3 && pond3 - b < 0){
+               //printf("%6d  %6d, %5d, %6d, %6d\n", pond1, moose1, axisThing, pond2, pond3);
+            }
+            
+            if(isFfxSelected){
+               // It seems to be that there's always something that references the struct (at pond1)
+               // EXCEPT for the first ones AND the final one. Strange.
+
+               // Returns the addresses that reference the input address
+               auto getRefSources = [&](int address) -> std::vector<int>{
+                  std::vector<int> output;
+
+                  for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
+                     int possiblePointer = getIP(b)[0];
+                     if(possiblePointer == address){
+                        output.push_back(b);
+                     }
+                  }
+
+                  return output;
+               };
+
+               std::vector<int> refSources = getRefSources(b - 3 * 4);
+               bool hasRefToThisStruct = !refSources.empty();
+
+               ++axisThingCount;
+               refStuff.push_back(refSources);
+
+               AxisThingStruct ast;
+               ast.address = b - 3 * 4;
+               ast.pond1 = pond1;
+               ast.moose1 = moose1;
+               ast.moose2 = moose2;
+               ast.axisThing = axisThing;
+               ast.pond2 = pond2;
+               ast.pond3 = pond3;
+               axisThings.push_back(ast);
+            }
+         }
+      }
+
+
+      if(isFfxSelected && false){
+         printf("refStuff for ffx %d: [\n", rawFfx.header->ffxId);
+         int lastRef = 0;
+         for(int r = 0; r < axisThingCount; ++r){
+            if(r > 0) printf("\n");
+            std::vector<int>& currentRefs = refStuff[r];
+            AxisThingStruct ast = axisThings[r];
+
+            // Choose from currentRefs the one that fits best
+            int currentRef = 0;
+            for(int ref : currentRefs){
+               if((ref > lastRef && ref < currentRef) || currentRef == 0){
+                  currentRef = ref;
+               }
+            }
+
+            printf(" %5d -> %5d (%2d %5d, %5d, %5d)", currentRef, ast.address, ast.moose1, ast.pond1, ast.pond2, ast.pond3);
+
+            if(currentRef != 0 && currentRef < lastRef){
+               //ffxAssumptionWrong(path, L"axisThing ref doesn't make sense");
+            }
+
+            if(currentRef != 0){
+               lastRef = currentRef;
+            }
+         }
+         printf("\n]\n\n");
+      }
    }
 
    //wprintf_s(L"minSecondData2Pointer = %d '%s'\n", minSecondData2Pointer, minSecondData2PointerPath.c_str());
    //wprintf_s(L"maxSecondData2Pointer = %d '%s'\n", maxSecondData2Pointer, maxSecondData2PointerPath.c_str());
+
+   //printf("\n-- mooseStats\n");
+   //std::sort(mooseStats.begin(), mooseStats.end(), [](auto a, auto b) -> bool{return a.first < b.first;});
+   //for(auto pair : mooseStats){
+   //   printf("moose %3d, count = %d\n", pair.first, pair.second);
+   //}
 }
 
 struct Data2Entry{
@@ -1431,9 +1848,11 @@ int main(int argCount, char** args) {
 
    testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
-   //std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
    //path += L"f0013520.ffx";
-   ////path += L"f0000482.ffx";
-   ////path += L"f0014423.ffx";
+   //path += L"f0000482.ffx";
+   path += L"f0120034.ffx";
    //outputFfxAnalysis(path);
+
+   system("pause");
 }
