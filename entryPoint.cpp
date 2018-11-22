@@ -28,7 +28,7 @@ int findIndex(const TArray& arr, decltype(arr[0]) element){
 }
 
 template<typename TArray>
-int findIndex(const TArray& arr, std::function<bool(decltype(arr[0]))> lambda){
+int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
    int findResult = -1;
    for(int n = 0; n < (int)std::size(arr); ++n){
       if(lambda(arr[n])){
@@ -163,6 +163,53 @@ struct AxisThingStruct{
    int pond3 = 0;
 };
 
+struct RawAST{
+   int pond1 = 0;
+   int moose1 = 0;
+   int moose2 = 0;
+   int axisThing = 0;
+   int pond2 = 0;
+   int pond3 = 0;
+};
+
+struct Type133{
+   int type;
+   int ffxId;
+   int unk1;
+   int unk2;
+   int unk3;
+   int unk4;
+   int unk5;
+   int unk6;
+   int unk7;
+   int always8Or10;
+   
+   int pond1_1;
+   int moose1_1;
+   int moose2_1;
+   int axisThing_1;
+   int pond2_1;
+   int pond3_1;
+
+   int pond1_2;
+   int moose1_2;
+   int moose2_2;
+   int axisThing_2;
+   int pond2_2;
+   int pond3_2;
+
+   int house;
+   int ostrich;
+};
+
+struct Type134{
+   int type;
+   int ffxId;
+   int unk1;
+   int type133s; // Pointer to array of pointers to type 133s
+   int type133Count;
+};
+
 void testEveryFfx(std::wstring dir){
    std::vector<std::wstring> fileList;
    std::set<int> ffxIdSet;
@@ -213,6 +260,10 @@ void testEveryFfx(std::wstring dir){
    for(const std::wstring& path : fileList){
       //wprintf_s(L"File %d/%d\n", index, fileList.size());
       ++index;
+
+      auto getIP = [&](int address) -> int*{
+         return reinterpret_cast<int*>(&rawFfx.bytes[address]);
+      };
 
       loadRawFfxFile(&rawFfx, dir + path);
 
@@ -294,27 +345,256 @@ void testEveryFfx(std::wstring dir){
          ffxAssumptionWrong(path, L"Not enough data3 pointers");
       }
 
+
+      // Axis number (65536 etc)
+
+      int axisThingCount = 0;
+      // If nothing references the axisThing struct, the value is still 0
+      std::vector<std::vector<int>> refStuff;
+      std::vector<AxisThingStruct> axisThings;
+
+      int ffxIdsToOutput[] = {482, 511, 13520, 2023, 120034};
+      bool isFfxSelected = includes(ffxIdsToOutput, rawFfx.header->ffxId);
+      //isFfxSelected = true;
+
+      for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
+         int* ip = getIP(b);
+         if(ip[0] == 0x00010000 || ip[0] == 0x00010100 || ip[0] == 0x00010101 || ip[0] == 0x00010001){
+            //if(ip[0] > 65000 && ip[0] < 70000){
+            //int unk1 = ip[-4];
+            int pond1 = ip[-3];
+            int moose1 = ip[-2];
+            int moose2 = ip[-1];
+            int axisThing = ip[0];
+            int pond2 = ip[1];
+            int pond3 = ip[2];
+
+            if(moose1 != moose2){
+               ffxAssumptionWrong(path, L"axis thing, meese not equal");
+            }
+
+            int findResult = findIndex(mooseStats, [&](auto& pair) -> bool{return pair.first == moose1;});
+            if(findResult == -1){
+               findResult = mooseStats.size();
+               mooseStats.emplace_back(moose1, 0);
+            }
+            ++mooseStats[findResult].second;
+
+            //if(moose1 == 64){
+            //   printf("%d\n", rawFfx.header->ffxId);
+            //}
+
+            // moose seems to be a type
+            if(moose1 == 1){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 2){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 3){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 4){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 5){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 6){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 7){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 8){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 9){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 11){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 12){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+            }else if(moose1 == 13){
+               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 15){
+               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 16){
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 18){
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }else if(moose1 == 64){
+               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
+               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
+            }
+
+            //if(axisThing != 65536){
+            //   //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
+            //   printf("weird axis thing ---------------- %d\n", moose1);
+            //}
+            if(axisThing != 65536){
+               //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
+               //printf("weird axis thing ---------------- %d\n", moose1);
+            }
+
+            //if(axisThing != 65536){
+            //   byte* atB = (byte*)(&axisThing);
+            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
+            //   int at2 = axisThing - 65536;
+            //   if(at2 != 1 && at2 != 256 && at2 != 257){
+            //      printf("%d\n", axisThing - 65536);
+            //   }
+            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
+            //}
+
+            bool isPond1Zero = pond1 == 0;
+            bool isMooseZero = moose1 == 0;
+            if(isPond1Zero != isMooseZero){
+               ffxAssumptionWrong(path, L"pond1 and moose");
+            }
+
+            if(pond2 != 0){
+               if(pond1 != 0 || pond3 != 0){
+                  ffxAssumptionWrong(path, L"pond2");
+               }
+            }
+
+            if(axisThing != 65536){
+               if(pond1 == 0 || moose1 == 0 || pond2 != 0){
+                  ffxAssumptionWrong(path, L"weird axisThing");
+               }
+            }
+
+            if(pond1 != 0){
+               if(pond1 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond1 wrong direction");
+               }
+            }
+            if(pond2 != 0){
+               if(pond2 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond2 wrong direction");
+               }
+            }
+            if(pond3 != 0){
+               if(pond3 - b <= 0){
+                  ffxAssumptionWrong(path, L"pond3 wrong direction");
+               }
+            }
+
+            if(pond3 != 0){
+               if(pond1 == 0){
+                  ffxAssumptionWrong(path, L"pond3");
+               }
+            }
+
+
+            if(pond3){
+               //printf("%d\n", pond3 - b);
+            }
+            if(pond3 && pond3 - b < 0){
+               //printf("%6d  %6d, %5d, %6d, %6d\n", pond1, moose1, axisThing, pond2, pond3);
+            }
+
+            if(isFfxSelected){
+               // It seems to be that there's always something that references the struct (at pond1)
+               // EXCEPT for the first ones AND the final one. Strange.
+
+               // Returns the addresses that reference the input address
+               auto getRefSources = [&](int address) -> std::vector<int>{
+                  std::vector<int> output;
+
+                  for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
+                     int possiblePointer = getIP(b)[0];
+                     if(possiblePointer == address){
+                        output.push_back(b);
+                     }
+                  }
+
+                  return output;
+               };
+
+               std::vector<int> refSources = getRefSources(b - 3 * 4);
+               bool hasRefToThisStruct = !refSources.empty();
+
+               ++axisThingCount;
+               refStuff.push_back(refSources);
+
+               AxisThingStruct ast;
+               ast.address = b - 3 * 4;
+               ast.pond1 = pond1;
+               ast.moose1 = moose1;
+               ast.moose2 = moose2;
+               ast.axisThing = axisThing;
+               ast.pond2 = pond2;
+               ast.pond3 = pond3;
+               axisThings.push_back(ast);
+            }
+
+            // pond2 analysis
+            //if(pond2){
+            //   ip = getIP(pond2);
+            //   int someCount = ip[0];
+            //   int relativeOffset = ip[1];
+            //   int unk1 = ip[2];
+
+            //   ip = getIP(pond2 + relativeOffset);
+
+            //   printf("%6d, %6d, %6d\n", ip[0], ip[1], ip[2]);
+            //}
+         }
+      }
+
+
+      //////////////////////////////////////////////////////////////////////////////////////////////
+      // Data3 analysis
+
+      std::vector<int> ffxIdsToTryToLoad;
+
       bool has133 = false;
+      bool has134 = false;
+      std::set<int> axisThingsPointedTo;
       for(int n = 0; n < rawFfx.header->data3Count; ++n){
          int pointer = rawFfx.data3[n];
-         int* p = reinterpret_cast<int*>(&rawFfx.bytes[pointer]);
+         int* p = getIP(rawFfx.data3[n]);
          int type = *p;
          ++p;
          if(type == 7){
             float value = *reinterpret_cast<float*>(p);
             //printf("%f\n", value);
          }else if(type == 37){
-            int refFfxId = *p;
+            int refFfxId = p[0];
+            int axisThingPointer = p[1];
+            int zero = p[2];
+
             if(refFfxId == 0){
-               ++p;
-               int next1 = *p;
-               ++p;
-               int next2 = *p;
-               if(next1 != 0 || next2 != 0){
+               if(axisThingPointer != 0){
                   ffxAssumptionWrong(path, L"Type 37");
                }
             }else{
-               //printf("%d\n", refFfxId);
+               if(axisThingPointer){
+                  axisThingsPointedTo.insert(axisThingPointer);
+                  //printf("%d:  %d\n", refFfxId, axisThingPointer);
+               }
+
+               if(zero != 0){
+                  ffxAssumptionWrong(path, L"Type 37");
+               }
+            }
+         }else if(type == 38){
+            int someCount = p[0];
+            int axisThingPointer = p[1];
+            int zero = p[2];
+
+            //printf("%7d %5d, %d\n", someCount, axisThingPointer, zero);
+
+            if(axisThingPointer == 0){
+               ffxAssumptionWrong(path, L"Type 38");
+            }
+
+            if(zero != 0){
+               ffxAssumptionWrong(path, L"Type 38");
             }
          }else if(type == 70){
             float value = *reinterpret_cast<float*>(p);
@@ -330,11 +610,154 @@ void testEveryFfx(std::wstring dir){
             }
          }else if(type == 133){
             has133 = true;
+
+            --p;
+            Type133 type133;
+            memcpy(&type133, p, sizeof(Type133));
+
+            //printf("%d\n", type133.ostrich);
+            int ostrich = type133.ostrich;
+            if(ostrich != 1 && ostrich != 2 && ostrich != 3 && ostrich != 4 && ostrich != 5 && ostrich != 6 && ostrich != 7){
+               ffxAssumptionWrong(path, L"ostrich is unfamiliar");
+            }
+
+            if(type133.pond1_1 != 0){
+               //printf("%d, %d\n", type133.pond1_1, type133.pond3_2);
+               //printf("%d\n", type133.always8Or10);
+            }
+
+            if(type133.unk1 != 0 || type133.unk2 != 0 || type133.unk3 != 0 || type133.unk4 != 0 || type133.unk5 != 0 || type133.unk6 != 0 || type133.unk7 != 0){
+               ffxAssumptionWrong(path, L"early part of type 133");
+            }
+
+            if(has134 == false && type133.ostrich == 2 && !type133.pond1_1 && !type133.pond1_2){
+               ffxIdsToTryToLoad.push_back(rawFfx.header->ffxId);
+            }
+
+            // Important stuff
+            if(false && has134 == false && type133.ostrich == 2 && !type133.pond1_1 && !type133.pond1_2){
+               int* ip = getIP(type133.house);
+               int crepe1 = ip[0];
+               int crepe2 = ip[1];
+               int tulip1 = ip[2];
+               int tulip2 = ip[3];
+               int monkeyTail2 = ip[5];
+
+               //if(monkeyTail2 + 4 != axisThings.back().address){
+               //   int bp=42;
+               //}
+
+               {
+                  ip = getIP(crepe2);
+
+                  //if(crepe1 + 8 != crepe2){
+                  //   printf("%d\n", crepe1 + 8 - crepe2);
+                  //}
+               }
+
+               {
+                  ip = getIP(crepe2);
+                  int blossom = ip[0];
+                  RawAST ast = *reinterpret_cast<RawAST*>(ip + 1);
+
+                  //if(ast.pond1){
+                  //   if(ast.moose1 != 1 && ast.moose1 != 8 && ast.moose1 != 16){
+                  //      printf("(%5d, %5d, %5d), %5d, %5d, %5d\n", ast.pond1, ast.moose1, ast.moose2, ast.axisThing, ast.pond2, ast.pond3);
+                  //   }
+
+                  //   ip = getIP(ast.pond1);
+                  //   int spider = ip[0];
+
+                  //   ip = getIP(spider);
+
+                  //   printf("%d, refFfx = %07d, %5d, %5d\n", ip[0], ip[1], ip[2], ip[3]);
+
+                  //   if(ip[2] != 0 && ip[2] != 128){
+                  //      int bp=42;
+                  //   }
+
+                  //}
+
+                  if(ast.pond3){
+                     ip = getIP(ast.pond3);
+                     int pig1 = ip[0];
+                     int pig2 = ip[1];
+
+
+                     if(pig2 != 0 && pig2 != 1 && pig2 != 2 && pig2 != 3 && pig2 != 4 && pig2 != 5 && pig2 != 6 && pig2 != 7 && pig2 != 8 && pig2 != 9 && pig2 != 10 && pig2 != 11 && pig2 != 13){
+                        printf("%d, %d\n", pig1, pig2);
+                     }
+
+                     //printf("%d, %d\n", ostrich, pig2);
+                  }
+
+                  if(ast.axisThing != 65536){
+                     printf("(%5d, %5d, %5d), %5d, %5d, %5d\n", ast.pond1, ast.moose1, ast.moose2, ast.axisThing, ast.pond2, ast.pond3);
+                  }
+
+                  //if(monkeyTail2 + 4 != crepe2 + 8 * 4){
+                  //   //printf("%d\n", ip[7]);
+                  //   printf("ffx %d: %d\n", rawFfx.header->ffxId, monkeyTail2 + 4 - crepe2 + 8 * 4);
+                  //}
+
+                  
+
+                  //int findResult = findIndex(axisThings, [&](auto& ast) -> bool{return ast.address == crepe2 + 4;});
+                  //if(findResult != -1){
+                  //   if(findResult != axisThings.size() - 2){
+                  //      printf("ffx %d %d / %d,  addr %5d\n", rawFfx.header->ffxId, findResult + 1, axisThings.size(), axisThings[findResult].address);
+
+                  //      ast = *reinterpret_cast<RawAST*>(getIP(monkeyTail2 + 4));
+                  //      printf("from monkeyTail2:   %5d (%5d, %5d, %5d), %5d, %5d, %5d\n", monkeyTail2 + 4, ast.pond1, ast.moose1, ast.moose2, ast.axisThing, ast.pond2, ast.pond3);
+
+                  //      AxisThingStruct aLast = axisThings[axisThings.size() - 2];
+                  //      printf("2nd last axisThing: %5d (%5d, %5d, %5d), %5d, %5d, %5d\n", aLast.address, aLast.pond1, aLast.moose1, aLast.moose2, aLast.axisThing, aLast.pond2, aLast.pond3);
+                  //      aLast = axisThings.back();
+                  //      printf("last axisThing:     %5d (%5d, %5d, %5d), %5d, %5d, %5d\n\n", aLast.address, aLast.pond1, aLast.moose1, aLast.moose2, aLast.axisThing, aLast.pond2, aLast.pond3);
+
+                  //      int bp=42;
+                  //   }
+                  //}else{
+                  //   int bp=42;
+                  //}
+               }
+            }
+         }else if(type == 134){
+            has134 = true;
+
+            --p;
+            Type134 type134;
+            memcpy(&type134, p, sizeof(Type134));
+
+            if(type134.type133Count == 0){
+               ffxAssumptionWrong(path, L"type134 count is 0");
+            }
+
+            //printf("ostriches: [");
+            int* type133Pointers = getIP(type134.type133s);
+            for(int n = 0; n < type134.type133Count; ++n){
+               Type133 type133 = *reinterpret_cast<Type133*>(getIP(type133Pointers[0]));
+               //printf("%d\n", type133.ffxId);
+               if(type133.ffxId != type134.ffxId){
+                  ffxAssumptionWrong(path, L"type134 ffxId mismatch");
+               }
+
+               //printf("%d", type133.ostrich);
+               //if(n != type134.type133Count - 1){
+               //   printf(", ");
+               //}
+
+               // always 2
+            }
+            //printf("]\n");
          }
       }
       if(has133 == false){
          ffxAssumptionWrong(path, L"Type 133 missing");
       }
+
+      //printf("axisThingCount = %4d, from type 37/38 = %4d\n", axisThingCount, axisThingsPointedTo.size());
+
 
       // Test the second var in the second data2 pointer
       if(0){
@@ -454,10 +877,6 @@ void testEveryFfx(std::wstring dir){
       if(rawFfx.header->ffxId == 13520){
          int bp=42;
       }
-
-      auto getIP = [&](int address) -> int*{
-         return reinterpret_cast<int*>(&rawFfx.bytes[address]);
-      };
 
       int* ip = getIP(rawFfx.data2[1]);
       int house = ip[0];
@@ -799,195 +1218,20 @@ void testEveryFfx(std::wstring dir){
       }
 
 
-      // Axis number (65536 etc)
+      // Address distances are interesting
+      if(isFfxSelected && false){
+         printf("ffx %7d\n", rawFfx.header->ffxId);
+         for(int r = 0; r < axisThingCount - 1; ++r){
+            AxisThingStruct currAST = axisThings[r];
+            AxisThingStruct nextAST = axisThings[r + 1];
 
-      int axisThingCount = 0;
-      // If nothing references the axisThing struct, the value is still 0
-      std::vector<std::vector<int>> refStuff;
-      std::vector<AxisThingStruct> axisThings;
-      
-      int ffxIdsToOutput[] = {482, 511, 13520, 2023, 120034};
-      bool isFfxSelected = includes(ffxIdsToOutput, rawFfx.header->ffxId);
-
-      for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
-         int* ip = getIP(b);
-         if(ip[0] == 0x00010000 || ip[0] == 0x00010100 || ip[0] == 0x00010101){
-         //if(ip[0] > 65000 && ip[0] < 70000){
-            //int unk1 = ip[-4];
-            int pond1 = ip[-3];
-            int moose1 = ip[-2];
-            int moose2 = ip[-1];
-            int axisThing = ip[0];
-            int pond2 = ip[1];
-            int pond3 = ip[2];
-
-            if(rawFfx.header->ffxId != 170006){
-               if(moose1 != moose2){
-                  ffxAssumptionWrong(path, L"axis thing, meese not equal");
-               }
-            }
-
-            int findResult = findIndex(mooseStats, [&](auto pair) -> bool{return pair.first == moose1;});
-            if(findResult == -1){
-               findResult = mooseStats.size();
-               mooseStats.emplace_back(moose1, 0);
-            }
-            ++mooseStats[findResult].second;
-
-            //if(moose1 == 64){
-            //   printf("%d\n", rawFfx.header->ffxId);
-            //}
-
-            // moose seems to be a type
-            if(moose1 == 1){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 2){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 3){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 4){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 5){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 6){
-               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 7){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 8){
-               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 9){
-               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 11){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 12){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-            }else if(moose1 == 13){
-               if(!(pond1 && !pond2)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 15){
-               if(!(pond1 && !pond2 && !pond3)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 16){
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 18){
-               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
-            }else if(moose1 == 64){
-               if(axisThing != 65536) ffxAssumptionWrong(path, L"moose doesn't match axisThing");
-               if(!(pond1 && !pond2 && pond3)) ffxAssumptionWrong(path, L"moose type error");
-            }
-
-            //if(axisThing != 65536){
-            //   //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
-            //   printf("weird axis thing ---------------- %d\n", moose1);
-            //}
-            if(axisThing != 65536){
-               //printf("%6d  %6d, %3d, %3d, %5d, %5d \n", b, pond1, moose1, moose2, axisThing, pond2);
-               //printf("weird axis thing ---------------- %d\n", moose1);
-            }
-            
-            //if(axisThing != 65536){
-            //   byte* atB = (byte*)(&axisThing);
-            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
-            //   int at2 = axisThing - 65536;
-            //   if(at2 != 1 && at2 != 256 && at2 != 257){
-            //      printf("%d\n", axisThing - 65536);
-            //   }
-            //   //printf("%d %d %d %d\n", atB[0], atB[1], atB[2], atB[3]);
-            //}
-
-            bool isPond1Zero = pond1 == 0;
-            bool isMooseZero = moose1 == 0;
-            if(isPond1Zero != isMooseZero){
-               ffxAssumptionWrong(path, L"pond1 and moose");
-            }
-
-            if(pond2 != 0){
-               if(pond1 != 0 || pond3 != 0){
-                  ffxAssumptionWrong(path, L"pond2");
-               }
-            }
-
-            if(axisThing != 65536){
-               if(pond1 == 0 || moose1 == 0 || pond2 != 0){
-                  ffxAssumptionWrong(path, L"weird axisThing");
-               }
-            }
-
-            if(pond1 != 0){
-               if(pond1 - b <= 0){
-                  ffxAssumptionWrong(path, L"pond1 wrong direction");
-               }
-            }
-            if(pond2 != 0){
-               if(pond2 - b <= 0){
-                  ffxAssumptionWrong(path, L"pond2 wrong direction");
-               }
-            }
-            if(pond3 != 0){
-               if(pond3 - b <= 0){
-                  ffxAssumptionWrong(path, L"pond3 wrong direction");
-               }
-            }
-
-            if(pond3 != 0){
-               if(pond1 == 0){
-                  ffxAssumptionWrong(path, L"pond3");
-               }
-            }
-
-
-            if(pond3){
-               //printf("%d\n", pond3 - b);
-            }
-            if(pond3 && pond3 - b < 0){
-               //printf("%6d  %6d, %5d, %6d, %6d\n", pond1, moose1, axisThing, pond2, pond3);
-            }
-            
-            if(isFfxSelected){
-               // It seems to be that there's always something that references the struct (at pond1)
-               // EXCEPT for the first ones AND the final one. Strange.
-
-               // Returns the addresses that reference the input address
-               auto getRefSources = [&](int address) -> std::vector<int>{
-                  std::vector<int> output;
-
-                  for(size_t b = 40; b < rawFfx.bytes.size(); b += 4){
-                     int possiblePointer = getIP(b)[0];
-                     if(possiblePointer == address){
-                        output.push_back(b);
-                     }
-                  }
-
-                  return output;
-               };
-
-               std::vector<int> refSources = getRefSources(b - 3 * 4);
-               bool hasRefToThisStruct = !refSources.empty();
-
-               ++axisThingCount;
-               refStuff.push_back(refSources);
-
-               AxisThingStruct ast;
-               ast.address = b - 3 * 4;
-               ast.pond1 = pond1;
-               ast.moose1 = moose1;
-               ast.moose2 = moose2;
-               ast.axisThing = axisThing;
-               ast.pond2 = pond2;
-               ast.pond3 = pond3;
-               axisThings.push_back(ast);
-            }
+            int distance = nextAST.address - currAST.address;
+            printf("  %5d  moose %2d dist = %d\n", currAST.address, currAST.moose1, distance);
          }
-      }
+         printf("  %5d  moose %2d\n", axisThings.back().address, axisThings.back().moose1);
 
+         printf("\n");
+      }
 
       if(isFfxSelected && false){
          printf("refStuff for ffx %d: [\n", rawFfx.header->ffxId);
@@ -1016,6 +1260,45 @@ void testEveryFfx(std::wstring dir){
             }
          }
          printf("\n]\n\n");
+      }
+
+      
+      // Test "pre-data", but more experienced this time
+
+      int* firstData3 = getIP(rawFfx.data3[0]);
+      int* secondData3 = getIP(rawFfx.data3[1]);
+      int* commonStart = nullptr;
+      if(firstData3[0] == 133){
+         if(rawFfx.data2[1] == 120){
+         }else if(rawFfx.data2[2] == 120){
+         }else{
+            ffxAssumptionWrong(path, L"pre-data stuff");
+         }
+
+         commonStart = getIP(120);
+      }else if(firstData3[0] == 134){
+         if(secondData3[0] != 133){
+            ffxAssumptionWrong(path, L"data3 after 134 is not 133");
+         }
+
+         if(rawFfx.data2[2] == 140){
+         }else if(rawFfx.data2[3] == 140){
+         }else{
+            ffxAssumptionWrong(path, L"pre-data stuff");
+         }
+
+         commonStart = getIP(140);
+      }else{
+         ffxAssumptionWrong(path, L"first data3 unfamiliar");
+      }
+
+      // Then try to read more stuff based on more experience
+
+      house = commonStart[0];
+      ostrich = commonStart[1];
+
+      if(ostrich != 1 && ostrich != 2 && ostrich != 3 && ostrich != 4 && ostrich != 5 && ostrich != 6 && ostrich != 7){
+         ffxAssumptionWrong(path, L"ostrich is unfamiliar");
       }
    }
 
@@ -1224,7 +1507,10 @@ struct SAStruct{
    }
 };
 
-void outputFfxAnalysis(std::wstring path){
+void outputFfxAnalysis(std::wstring fileName){
+   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   path += fileName;
+
    std::vector<Line> lines; // Each 4 bytes is a line
    std::vector<Data2Entry> data2Entries;
    std::vector<Data3Entry> data3Entries;
@@ -1350,12 +1636,17 @@ void outputFfxAnalysis(std::wstring path){
             paramCheck(1);
             entry.params.emplace_back(fp[0]);
          }else if(entry.type == 37){
-            if(ip[0] == 0 && paramCount != 3){
-               ffxAssumptionWrong(path, L"Data3 type 37 has no refFfxId but no mysterious trailing params");
-            }
-            for(int a = 0; a < paramCount; ++a){
-               entry.params.emplace_back(ip[a]);
-            }
+            //if(ip[0] == 0 && paramCount != 3){
+            //   ffxAssumptionWrong(path, L"Data3 type 37 has no refFfxId but no mysterious trailing params");
+            //}
+            //for(int a = 0; a < paramCount; ++a){
+            //   entry.params.emplace_back(ip[a]);
+            //}
+
+            entry.params.emplace_back(ip[0]);
+            entry.params.emplace_back(ip[1]);
+            entry.params.emplace_back(ip[2]);
+            entry.params.emplace_back(ip[3]);
          }else if(entry.type == 70){
             paramCheck(1);
             entry.params.emplace_back(fp[0]);
@@ -1424,25 +1715,39 @@ void outputFfxAnalysis(std::wstring path){
          findResult->referencedLineIndex = pointerIndex;
       }
    }
-   for(Line& line : lines){
-      if((line.address < data2Entries[1].pointerAddress && line.address != 8) || line.address >= rawFfx.header->data2Start){
-         continue;
-      }
+   //for(Line& line : lines){
+   //   if((line.address < data2Entries[1].pointerAddress && line.address != 8) || line.address >= rawFfx.header->data2Start){
+   //      continue;
+   //   }
 
-      if(line.isInt && line.intValue > 4 && line.isData3 == false){
-         auto findResult = std::find_if(
-            lines.begin(),
-            lines.end(),
-            [&](Line& l) -> bool{return l.address == line.intValue;}
-         );
-         if(findResult != lines.end()){
-            // Don't reference the early data between ~32 and the second data2
-            if(findResult->address >= rawFfx.data2[1] || line.address <= rawFfx.data2[1]){
-               findResult->referencedBy.push_back(line.address);
-               line.referencedLineIndex = findResult->index;
-            }
-         }
-      }
+   //   if(line.isInt && line.intValue > 4 && line.isData3 == false){
+   //      auto findResult = std::find_if(
+   //         lines.begin(),
+   //         lines.end(),
+   //         [&](Line& l) -> bool{return l.address == line.intValue;}
+   //      );
+   //      if(findResult != lines.end()){
+   //         // Don't reference the early data between ~32 and the second data2
+   //         if(findResult->address >= rawFfx.data2[1] || line.address <= rawFfx.data2[1]){
+   //            findResult->referencedBy.push_back(line.address);
+   //            line.referencedLineIndex = findResult->index;
+   //         }
+   //      }
+   //   }
+   //}
+   for(int n = 0; n < rawFfx.header->data2Count; ++n){
+      int findResult = findIndex(lines, [&](auto& l) -> bool{return l.address == rawFfx.data2[n];});
+      if(findResult == -1) ffxAssumptionWrong(path, L"data2 as all pointers");
+      Line& pointerLine = lines[findResult];
+      if(!pointerLine.isInt || pointerLine.intValue == 0) ffxAssumptionWrong(path, L"data2 as all pointers");
+
+
+      findResult = findIndex(lines, [&](auto& l) -> bool{return l.address == pointerLine.intValue;});
+      if(findResult == -1) ffxAssumptionWrong(path, L"data2 as all pointers");
+      Line& destLine = lines[findResult];
+
+      pointerLine.referencedLineIndex = destLine.index;
+      destLine.referencedBy.push_back(pointerLine.address);
    }
 
    // Write the output to disk
@@ -1473,8 +1778,14 @@ void outputFfxAnalysis(std::wstring path){
       }
 
       for(int address : line.referencedBy){
-         sprintf(sBuffer, "  (<-- %d)", address);
-         outputText += sBuffer;
+         if(address >= rawFfx.data3Start){
+            int data3Index = (address - rawFfx.data3Start) / 4;
+            sprintf(sBuffer, "  (<-- data3[%d])", data3Index);
+            outputText += sBuffer;
+         }else if(address < rawFfx.header->data2Start){
+            sprintf(sBuffer, "  (<-- %d)", address);
+            outputText += sBuffer;
+         }
       }
    };
 
@@ -1537,16 +1848,16 @@ void outputFfxAnalysis(std::wstring path){
 
       if(line.address + 4 == rawFfx.header->data2Start){
          outputText += "\n";
-         for(int a = 0; a < 3; ++a){
-            for(int b = 0; b < 100; ++b){outputText += "#";}
+         for(int a = 0; a < 6; ++a){
+            for(int b = 0; b < 120; ++b){outputText += "#";}
             outputText += "\n";
          }
          outputText += "\nData2 pointers\n\n";
       }
       if(line.address + 4 == rawFfx.data3Start){
          outputText += "\n";
-         for(int a = 0; a < 3; ++a){
-            for(int b = 0; b < 100; ++b){outputText += "#";}
+         for(int a = 0; a < 6; ++a){
+            for(int b = 0; b < 120; ++b){outputText += "#";}
             outputText += "\n";
          }
          outputText += "\nData3 pointers\n\n";
@@ -1555,282 +1866,282 @@ void outputFfxAnalysis(std::wstring path){
       fwrite(outputText.data(), 1, outputText.size(), file);
    }
 
-   /////////////////////////////////////////////////////////////////////////////////////////////////
-   // Struct analysis
+   ///////////////////////////////////////////////////////////////////////////////////////////////////
+   //// Struct analysis
 
-   {
-      // Struct, count
-      std::vector<std::pair<SAStruct, int>> structs;
-      SAStruct currentStruct;
-      for(Line& line : lines){
-         if(line.referencedBy.empty() || currentStruct.values.empty()){
-            currentStruct.values.emplace_back(&line);
-         }else{
-            if(currentStruct.values.size() > 0){
-               bool alreadyExists = false;
-               for(auto& pair : structs){
-                  if(currentStruct.compare(&pair.first)){
-                     alreadyExists = true;
+   //{
+   //   // Struct, count
+   //   std::vector<std::pair<SAStruct, int>> structs;
+   //   SAStruct currentStruct;
+   //   for(Line& line : lines){
+   //      if(line.referencedBy.empty() || currentStruct.values.empty()){
+   //         currentStruct.values.emplace_back(&line);
+   //      }else{
+   //         if(currentStruct.values.size() > 0){
+   //            bool alreadyExists = false;
+   //            for(auto& pair : structs){
+   //               if(currentStruct.compare(&pair.first)){
+   //                  alreadyExists = true;
 
-                     ++pair.second;
+   //                  ++pair.second;
 
-                     break;
-                  }
-               }
-               if(alreadyExists == false){
-                  structs.emplace_back(currentStruct, 1);
-               }
+   //                  break;
+   //               }
+   //            }
+   //            if(alreadyExists == false){
+   //               structs.emplace_back(currentStruct, 1);
+   //            }
 
-               currentStruct = SAStruct();
-               currentStruct.values.emplace_back(&line);
-            }else{
-               printf("Empty struct (address %d)\n", line.address);
-            }
-         }
-      }
+   //            currentStruct = SAStruct();
+   //            currentStruct.values.emplace_back(&line);
+   //         }else{
+   //            printf("Empty struct (address %d)\n", line.address);
+   //         }
+   //      }
+   //   }
 
-      std::string outputText;
+   //   std::string outputText;
 
-      outputText += "\n\n\n\n\n\n\n\n\n\n\n";
-      outputText += "################################################################################\n";
-      outputText += "Struct analysis approach, straight\n";
-      outputText += "\n";
+   //   outputText += "\n\n\n\n\n\n\n\n\n\n\n";
+   //   outputText += "################################################################################\n";
+   //   outputText += "Struct analysis approach, straight\n";
+   //   outputText += "\n";
 
-      sprintf(sBuffer, "%d unique structs found\n\n", structs.size());
-      outputText += sBuffer;
+   //   sprintf(sBuffer, "%d unique structs found\n\n", structs.size());
+   //   outputText += sBuffer;
 
-      // Sort by value count?
+   //   // Sort by value count?
 
-      int index = 0;
-      for(auto& pair : structs){
-         sprintf(sBuffer, "Struct #%d, count %d  (first address = %d)\n", index++, pair.second, pair.first.values[0].line->address);
-         outputText += sBuffer;
+   //   int index = 0;
+   //   for(auto& pair : structs){
+   //      sprintf(sBuffer, "Struct #%d, count %d  (first address = %d)\n", index++, pair.second, pair.first.values[0].line->address);
+   //      outputText += sBuffer;
 
-         for(SAValue& value : pair.first.values){
-            outputText += "   ";
+   //      for(SAValue& value : pair.first.values){
+   //         outputText += "   ";
 
-            if(value.type == SAValue::Type::String){
-               outputText += "string";
-            }else if(value.type == SAValue::Type::Int){
-               outputText += "int";
-            }else if(value.type == SAValue::Type::Float){
-               outputText += "float";
-            }else if(value.type == SAValue::Type::Pointer){
-               outputText += "Pointer";
-            }
+   //         if(value.type == SAValue::Type::String){
+   //            outputText += "string";
+   //         }else if(value.type == SAValue::Type::Int){
+   //            outputText += "int";
+   //         }else if(value.type == SAValue::Type::Float){
+   //            outputText += "float";
+   //         }else if(value.type == SAValue::Type::Pointer){
+   //            outputText += "Pointer";
+   //         }
 
-            outputText += "\n";
-         }
-      }
+   //         outputText += "\n";
+   //      }
+   //   }
 
-      fwrite(outputText.data(), 1, outputText.size(), file);
-   }
+   //   fwrite(outputText.data(), 1, outputText.size(), file);
+   //}
 
 
-   /////////////////////////////////////////////////////////////////////////////////////////////////
-   // Generate DataNode tree
+   ///////////////////////////////////////////////////////////////////////////////////////////////////
+   //// Generate DataNode tree
 
-   std::vector<std::pair<int, DataNode*>> lineIndexToDataNode;
-   DataNode* root = new DataNode;
-   //std::set<DataNode*> dataNodesProcessed;
+   //std::vector<std::pair<int, DataNode*>> lineIndexToDataNode;
+   //DataNode* root = new DataNode;
+   ////std::set<DataNode*> dataNodesProcessed;
 
-   auto getPair = [&](int lineIndex) -> std::pair<int, DataNode*>&{
-      auto findResult = std::find_if(
-         lineIndexToDataNode.begin(),
-         lineIndexToDataNode.end(),
-         [&](std::pair<int, DataNode*> p) -> bool{return p.first == lineIndex;}
-      );
-      if(findResult != lineIndexToDataNode.end()){
-         return *findResult;
-      }else{
-         throw;
-      }
-   };
+   //auto getPair = [&](int lineIndex) -> std::pair<int, DataNode*>&{
+   //   auto findResult = std::find_if(
+   //      lineIndexToDataNode.begin(),
+   //      lineIndexToDataNode.end(),
+   //      [&](std::pair<int, DataNode*> p) -> bool{return p.first == lineIndex;}
+   //   );
+   //   if(findResult != lineIndexToDataNode.end()){
+   //      return *findResult;
+   //   }else{
+   //      throw;
+   //   }
+   //};
 
-   // Populate lineIndexToDataNode
-   for(Line& line : lines){
-      // Skip data2 and data3 pointers
-      //if(line.address >= rawFfx.header->data2Start + rawFfx.header->data2Count * 4){
-      //if(line.address >= rawFfx.header->data2Start){
-      //   continue;
-      //}
+   //// Populate lineIndexToDataNode
+   //for(Line& line : lines){
+   //   // Skip data2 and data3 pointers
+   //   //if(line.address >= rawFfx.header->data2Start + rawFfx.header->data2Count * 4){
+   //   //if(line.address >= rawFfx.header->data2Start){
+   //   //   continue;
+   //   //}
 
-      DataNode* newNode;
-      if(line.isString){
-         newNode = new DataNode(line.stringValue, root);
-      }else if(line.isInt){
-         newNode = new DataNode(line.intValue, root);
-      }else if(line.isFloat){
-         newNode = new DataNode(line.floatValue, root);
-      }
-      newNode->line = &line;
+   //   DataNode* newNode;
+   //   if(line.isString){
+   //      newNode = new DataNode(line.stringValue, root);
+   //   }else if(line.isInt){
+   //      newNode = new DataNode(line.intValue, root);
+   //   }else if(line.isFloat){
+   //      newNode = new DataNode(line.floatValue, root);
+   //   }
+   //   newNode->line = &line;
 
-      lineIndexToDataNode.emplace_back(line.index, newNode);
-   }
+   //   lineIndexToDataNode.emplace_back(line.index, newNode);
+   //}
 
-   // Set up parents and children for all nodes
-   std::set<DataNode*> dataNodesProcessing;
-   std::function<void(DataNode*)> processNode;
-   processNode = [&](DataNode* node) -> void{
-      if(dataNodesProcessing.count(node) != 0){
-         ffxResearchError(path, L"Node is already being processed");
-      }
-      dataNodesProcessing.insert(node);
+   //// Set up parents and children for all nodes
+   //std::set<DataNode*> dataNodesProcessing;
+   //std::function<void(DataNode*)> processNode;
+   //processNode = [&](DataNode* node) -> void{
+   //   if(dataNodesProcessing.count(node) != 0){
+   //      ffxResearchError(path, L"Node is already being processed");
+   //   }
+   //   dataNodesProcessing.insert(node);
 
-      int refIndex = node->line->referencedLineIndex;
-      if(refIndex != 0){
-         int firstIndex = refIndex;
-         int lastIndex = firstIndex;
-         while(
-            lastIndex + 1 < (int)lines.size() &&
-            lines[lastIndex + 1].referencedBy.size() == 0 &&
-            lines[lastIndex + 1].address != rawFfx.header->data2Start &&
-            lines[lastIndex + 1].address != rawFfx.data3Start
-         ){
-            ++lastIndex;
-         }
-         for(int i = firstIndex; i <= lastIndex; ++i){
-            DataNode* newChild = getPair(i).second;
-            newChild->setParentMostDepth(
-               node,
-               rawFfx.header->data2Start,
-               rawFfx.data3Start
-            );
-            processNode(newChild);
-         }
-      }
+   //   int refIndex = node->line->referencedLineIndex;
+   //   if(refIndex != 0){
+   //      int firstIndex = refIndex;
+   //      int lastIndex = firstIndex;
+   //      while(
+   //         lastIndex + 1 < (int)lines.size() &&
+   //         lines[lastIndex + 1].referencedBy.size() == 0 &&
+   //         lines[lastIndex + 1].address != rawFfx.header->data2Start &&
+   //         lines[lastIndex + 1].address != rawFfx.data3Start
+   //      ){
+   //         ++lastIndex;
+   //      }
+   //      for(int i = firstIndex; i <= lastIndex; ++i){
+   //         DataNode* newChild = getPair(i).second;
+   //         newChild->setParentMostDepth(
+   //            node,
+   //            rawFfx.header->data2Start,
+   //            rawFfx.data3Start
+   //         );
+   //         processNode(newChild);
+   //      }
+   //   }
 
-      dataNodesProcessing.erase(node);
-   };
-   std::vector<DataNode*> childrenCopy = root->children;
-   for(DataNode* child : childrenCopy){
-      if(child->line->address == 300){
-         printf("%d\n", child->getDepth());
-      }
-      processNode(child);
-   }
+   //   dataNodesProcessing.erase(node);
+   //};
+   //std::vector<DataNode*> childrenCopy = root->children;
+   //for(DataNode* child : childrenCopy){
+   //   if(child->line->address == 300){
+   //      printf("%d\n", child->getDepth());
+   //   }
+   //   processNode(child);
+   //}
 
-   std::string outputText;
+   //std::string outputText;
 
-   outputText += "\n\n\n\n\n\n\n\n\n\n\n";
-   outputText += "################################################################################\n";
-   outputText += "DataNode approach\n";
-   outputText += "\n";
+   //outputText += "\n\n\n\n\n\n\n\n\n\n\n";
+   //outputText += "################################################################################\n";
+   //outputText += "DataNode approach\n";
+   //outputText += "\n";
 
-   // Output dataNode structure
+   //// Output dataNode structure
 
-   int addressTextSize = sprintf(sBuffer, "0x%05x %6d ", 0, 0);
+   //int addressTextSize = sprintf(sBuffer, "0x%05x %6d ", 0, 0);
 
-   std::function<void(DataNode*, int)> outputNode;
-   outputNode = [&](DataNode* node, int depth) -> void{
-      if(node->line->referencedLineIndex == 2188 / 4){
-         int bp=42;
-      }
+   //std::function<void(DataNode*, int)> outputNode;
+   //outputNode = [&](DataNode* node, int depth) -> void{
+   //   if(node->line->referencedLineIndex == 2188 / 4){
+   //      int bp=42;
+   //   }
 
-      if(node->line->address == rawFfx.header->data2Start){
-         outputText += "\n------------------------------\nData2\n\n";
-      }
-      if(node->line->address == rawFfx.data3Start){
-         outputText += "\n------------------------------\nData3\n\n";
-      }
+   //   if(node->line->address == rawFfx.header->data2Start){
+   //      outputText += "\n------------------------------\nData2\n\n";
+   //   }
+   //   if(node->line->address == rawFfx.data3Start){
+   //      outputText += "\n------------------------------\nData3\n\n";
+   //   }
 
-      if(depth == 0){
-         sprintf(sBuffer, "0x%05x %6d ", node->line->address, node->line->address);
-         outputText += sBuffer;
-      }else{
-         for(int s = 0; s < addressTextSize; ++s) outputText += ' ';
-         for(int d = 0; d < depth; ++d){
-            outputText += "   ";
-         }
-      }
+   //   if(depth == 0){
+   //      sprintf(sBuffer, "0x%05x %6d ", node->line->address, node->line->address);
+   //      outputText += sBuffer;
+   //   }else{
+   //      for(int s = 0; s < addressTextSize; ++s) outputText += ' ';
+   //      for(int d = 0; d < depth; ++d){
+   //         outputText += "   ";
+   //      }
+   //   }
 
-      if(node->type == DataNode::Type::String){
-         outputText += node->u.s;
-      }else if(node->type == DataNode::Type::Int){
-         if(node->u.i == 0){
-            sprintf(sBuffer, "0");
-         }else if(node->line->referencedLineIndex != 0){
-            sprintf(sBuffer, "int %d*", node->u.i);
-         }else{
-            sprintf(sBuffer, "int %d", node->u.i);
-         }
-         outputText += sBuffer;
-      }else if(node->type == DataNode::Type::Float){
-         sprintf(sBuffer, "float %f", node->u.f);
-         outputText += sBuffer;
-      }
+   //   if(node->type == DataNode::Type::String){
+   //      outputText += node->u.s;
+   //   }else if(node->type == DataNode::Type::Int){
+   //      if(node->u.i == 0){
+   //         sprintf(sBuffer, "0");
+   //      }else if(node->line->referencedLineIndex != 0){
+   //         sprintf(sBuffer, "int %d*", node->u.i);
+   //      }else{
+   //         sprintf(sBuffer, "int %d", node->u.i);
+   //      }
+   //      outputText += sBuffer;
+   //   }else if(node->type == DataNode::Type::Float){
+   //      sprintf(sBuffer, "float %f", node->u.f);
+   //      outputText += sBuffer;
+   //   }
 
-      if(node->getDepth() == 0 && node->line->referencedLineIndex == 0 && node->line->address > 8){
-         sprintf(sBuffer, "  (Orphan?)");
-         outputText += sBuffer;
-      }
+   //   if(node->getDepth() == 0 && node->line->referencedLineIndex == 0 && node->line->address > 8){
+   //      sprintf(sBuffer, "  (Orphan?)");
+   //      outputText += sBuffer;
+   //   }
 
-      for(int refLineAddress : node->line->referencedBy){
-         auto findResult = std::find_if(
-            lines.begin(),
-            lines.end(),
-            [&](Line& l) -> bool{return l.address == refLineAddress;}
-         );
-         int refLineIndex = findResult->index;
-         DataNode* refNode = getPair(refLineIndex).second;
-         if(refNode->line->referencedLineIndex != 0){
-            if(refNode->line->address >= rawFfx.data3Start){
-               outputText += "  (<-- data3)";
-            }else if(refNode->line->address >= rawFfx.header->data2Start){
-               outputText += "  (<-- data2)";
-            }
-         }
-      }
+   //   for(int refLineAddress : node->line->referencedBy){
+   //      auto findResult = std::find_if(
+   //         lines.begin(),
+   //         lines.end(),
+   //         [&](Line& l) -> bool{return l.address == refLineAddress;}
+   //      );
+   //      int refLineIndex = findResult->index;
+   //      DataNode* refNode = getPair(refLineIndex).second;
+   //      if(refNode->line->referencedLineIndex != 0){
+   //         if(refNode->line->address >= rawFfx.data3Start){
+   //            outputText += "  (<-- data3)";
+   //         }else if(refNode->line->address >= rawFfx.header->data2Start){
+   //            outputText += "  (<-- data2)";
+   //         }
+   //      }
+   //   }
 
-      if(node->line->referencedBy.size() > 1){
-         for(int refLineAddress : node->line->referencedBy){
-            auto findResult = std::find_if(
-               lines.begin(),
-               lines.end(),
-               [&](Line& l) -> bool{return l.address == refLineAddress;}
-            );
-            int refLineIndex = findResult->index;
-            DataNode* refNode = getPair(refLineIndex).second;
-            if(refNode->children.empty() && refNode->line->referencedLineIndex != 0){
-               if(refNode->line->address < rawFfx.data3Start){
-                  sprintf(sBuffer, "  (<-- Middle ref from %d)", refNode->line->address);
-                  outputText += sBuffer;
-               }
-            }
-         }
-      }
+   //   if(node->line->referencedBy.size() > 1){
+   //      for(int refLineAddress : node->line->referencedBy){
+   //         auto findResult = std::find_if(
+   //            lines.begin(),
+   //            lines.end(),
+   //            [&](Line& l) -> bool{return l.address == refLineAddress;}
+   //         );
+   //         int refLineIndex = findResult->index;
+   //         DataNode* refNode = getPair(refLineIndex).second;
+   //         if(refNode->children.empty() && refNode->line->referencedLineIndex != 0){
+   //            if(refNode->line->address < rawFfx.data3Start){
+   //               sprintf(sBuffer, "  (<-- Middle ref from %d)", refNode->line->address);
+   //               outputText += sBuffer;
+   //            }
+   //         }
+   //      }
+   //   }
 
-      if(node->children.empty() && node->line->referencedLineIndex != 0){
-         DataNode* current = getPair(node->line->referencedLineIndex).second;
-         while(current->parent != root){
-            current = current->parent;
-         }
-         if(node->u.i > rawFfx.data2[1]){
-            DataNode* ref = getPair(node->line->referencedLineIndex).second;
+   //   if(node->children.empty() && node->line->referencedLineIndex != 0){
+   //      DataNode* current = getPair(node->line->referencedLineIndex).second;
+   //      while(current->parent != root){
+   //         current = current->parent;
+   //      }
+   //      if(node->u.i > rawFfx.data2[1]){
+   //         DataNode* ref = getPair(node->line->referencedLineIndex).second;
 
-            sprintf(sBuffer, "  (--> REFERENCE TO MIDDLE OF %d)", current->u.i);
-            outputText += sBuffer;
+   //         sprintf(sBuffer, "  (--> REFERENCE TO MIDDLE OF %d)", current->u.i);
+   //         outputText += sBuffer;
 
-            outputText += '\n';
-            for(DataNode* child : ref->parent->children){
-               outputNode(child, depth + 1);
-            }
-         }else{
-            outputText += '\n';
-         }
-      }else{
-         outputText += '\n';
-      }
+   //         outputText += '\n';
+   //         for(DataNode* child : ref->parent->children){
+   //            outputNode(child, depth + 1);
+   //         }
+   //      }else{
+   //         outputText += '\n';
+   //      }
+   //   }else{
+   //      outputText += '\n';
+   //   }
 
-      for(DataNode* child : node->children){
-         outputNode(child, depth + 1);
-      }
-   };
-   for(DataNode* child : root->children){
-      outputNode(child, 0);
-   }
+   //   for(DataNode* child : node->children){
+   //      outputNode(child, depth + 1);
+   //   }
+   //};
+   //for(DataNode* child : root->children){
+   //   outputNode(child, 0);
+   //}
 
-   fwrite(outputText.data(), 1, outputText.size(), file);
+   //fwrite(outputText.data(), 1, outputText.size(), file);
 
    fclose(file);
 
@@ -1848,11 +2159,12 @@ int main(int argCount, char** args) {
 
    testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
-   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
-   //path += L"f0013520.ffx";
-   //path += L"f0000482.ffx";
-   path += L"f0120034.ffx";
-   //outputFfxAnalysis(path);
+   //outputFfxAnalysis(L"f0000459.ffx");
+   //outputFfxAnalysis(L"f0000482.ffx");
+   //outputFfxAnalysis(L"f0000511.ffx");
+   //outputFfxAnalysis(L"f0002023.ffx");
+   //outputFfxAnalysis(L"f0013520.ffx");
+   //outputFfxAnalysis(L"f0120034.ffx");
 
    system("pause");
 }
