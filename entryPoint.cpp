@@ -1,49 +1,22 @@
-#include <iostream>
-#include <iomanip>
-#include <vector>
-#include <sstream>
-#include <algorithm>
-#include <functional>
-#include <set>
+#include "header.hpp"
 
-typedef unsigned char byte;
-
-
-template<typename TArray, typename TElement>
-bool includes(const TArray& arr, TElement element){
-   return std::find(std::begin(arr), std::end(arr), element) != std::end(arr);
-}
-
-template<typename TArray>
-int findIndex(const TArray& arr, decltype(arr[0]) element){
-   int findResult = -1;
-   for(int n = 0; n < (int)std::size(arr); ++n){
-      if(arr[n] == element){
-         findResult = n;
-         break;
-      }
-   }
-
-   return findResult;
-}
-
-template<typename TArray>
-int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
-   int findResult = -1;
-   for(int n = 0; n < (int)std::size(arr); ++n){
-      if(lambda(arr[n])){
-         findResult = n;
-         break;
-      }
-   }
-
-   return findResult;
-}
-
+bool hasErrored = false;
+FILE* currentGlobalFile = nullptr;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+
+   if(hasErrored == false){
+      hasErrored = true;
+      if(currentGlobalFile){
+         fclose(currentGlobalFile);
+      }
+      printf("Outputting ffx analysis...\n");
+      outputFfxAnalysis(path);
+      printf("Done.\n");
+   }
+
    throw;
 }
 
@@ -550,7 +523,7 @@ void testEveryFfx(std::wstring dir){
       //////////////////////////////////////////////////////////////////////////////////////////////
       // Data3 analysis
 
-      std::vector<int> ffxIdsToTryToLoad;
+      std::vector<std::wstring> ffxIdsToTryToLoad;
 
       bool has133 = false;
       bool has134 = false;
@@ -631,7 +604,7 @@ void testEveryFfx(std::wstring dir){
             }
 
             if(has134 == false && type133.ostrich == 2 && !type133.pond1_1 && !type133.pond1_2){
-               ffxIdsToTryToLoad.push_back(rawFfx.header->ffxId);
+               ffxIdsToTryToLoad.push_back(path);
             }
 
             // Important stuff
@@ -757,6 +730,11 @@ void testEveryFfx(std::wstring dir){
       }
 
       //printf("axisThingCount = %4d, from type 37/38 = %4d\n", axisThingCount, axisThingsPointedTo.size());
+
+      for(std::wstring ffxPath : ffxIdsToTryToLoad){
+         Ffx ffx;
+         loadFfxFile(ffx, ffxPath);
+      }
 
 
       // Test the second var in the second data2 pointer
@@ -1508,8 +1486,13 @@ struct SAStruct{
 };
 
 void outputFfxAnalysis(std::wstring fileName){
-   std::wstring path = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
-   path += fileName;
+   std::wstring path;
+   if(fileName[1] == L':'){
+      path = fileName;
+   }else{
+      path += L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+      path += fileName;
+   }
 
    std::vector<Line> lines; // Each 4 bytes is a line
    std::vector<Data2Entry> data2Entries;
@@ -2149,6 +2132,37 @@ void outputFfxAnalysis(std::wstring fileName){
    system(sBuffer);
 }
 
+void loadEveryFfx(std::wstring dir){
+   std::vector<std::wstring> fileList;
+   {
+      std::wstring fileListPath = dir + L"fileList.txt";
+      FILE* file = _wfopen(fileListPath.c_str(), L"r");
+
+      fseek(file, 0, SEEK_END);
+      long fileSize = ftell(file);
+      fseek(file, 0, SEEK_SET);
+
+      wchar_t endianness;
+      fread(&endianness, sizeof(wchar_t), 1, file);
+
+      std::wstring fullText;
+      fullText.resize(fileSize - sizeof(wchar_t));
+      fread(&fullText[0], sizeof(fullText[0]), fullText.size(), file);
+      fclose(file);
+
+      std::wstringstream ss(fullText);
+      std::wstring item;
+      while (std::getline(ss, item, L'\n')) {
+         fileList.push_back(item);
+      }
+   }
+
+   for(const std::wstring& path : fileList){
+      Ffx ffx;
+      loadFfxFile(ffx, dir + path);
+   }
+}
+
 int main(int argCount, char** args) {
    printf("Hello\n");
 
@@ -2156,8 +2170,9 @@ int main(int argCount, char** args) {
    //std::wstring path = L"C:/Projects/Dark Souls/FFX research/";
    //path += L"f0000482.ffx";
    //loadRawFfxFile(&rawFfx, path);
+   
+   //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
-   testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
    //outputFfxAnalysis(L"f0000459.ffx");
    //outputFfxAnalysis(L"f0000482.ffx");
@@ -2165,6 +2180,19 @@ int main(int argCount, char** args) {
    //outputFfxAnalysis(L"f0002023.ffx");
    //outputFfxAnalysis(L"f0013520.ffx");
    //outputFfxAnalysis(L"f0120034.ffx");
+
+   Ffx ffx;
+   std::wstring dir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   //for(int ffxId : {459, 482, 511, 13520, 2023, 120034}){
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, 250, L"%sf%07d.ffx", dir.c_str(), ffxId);
+   //   loadFfxFile(ffx, wBuffer);
+   //}
+   //loadFfxFile(ffx, dir + L"f0002023.ffx");
+
+
+   loadEveryFfx(dir);
+
 
    system("pause");
 }

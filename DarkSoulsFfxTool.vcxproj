@@ -117,6 +117,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entryPoint.cpp" />
+    <ClCompile Include="loadFfxFile.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="header.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
