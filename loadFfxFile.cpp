@@ -73,6 +73,10 @@ struct Pond3Type3{
    int unk4;
 };
 
+struct Pond3Type4{
+   int unk1;
+};
+
 struct Pond3Type5{
    int unk1;
 };
@@ -111,7 +115,16 @@ struct Type1{
    int unk1;
 };
 
+struct Type2{
+   std::vector<int> bunchaInts;
+};
+
 struct Type5{
+   std::vector<float> floatThings;
+   std::vector<int> intThings;
+};
+
+struct Type6{
    std::vector<float> floatThings;
    std::vector<int> intThings;
 };
@@ -120,9 +133,31 @@ struct Type7{
    float unk1;
 };
 
+struct Type9{
+   std::vector<float> floatThings;
+   std::vector<int> intThings;
+};
+
 struct Type11{
    std::vector<float> floatThings;
    std::vector<int> intThings;
+};
+
+struct Type12{
+   std::vector<float> floatsA;
+   std::vector<float> floatsB;
+};
+
+struct Type19{
+   std::vector<float> floatsA;
+   std::vector<float> floatsB;
+   int count;
+};
+
+struct Type20{
+   std::vector<float> floatsA;
+   std::vector<float> floatsB;
+   int count;
 };
 
 struct Type37{
@@ -264,6 +299,17 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          Type1 t;
          t.unk1 = dr.readInt(addr + 4);
          data3.set(t);
+      }else if(data3.type == 2){
+         Type2 t;
+
+         int offset = dr.readInt(addr + 4);
+         int count = dr.readInt(addr + 8);
+
+         for(int n = 0; n < count; ++n){
+            t.bunchaInts.push_back(dr.readInt(offset + n * 4));
+         }
+
+         data3.set(t);
       }else if(data3.type == 5){
          Type5 t;
 
@@ -279,17 +325,13 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          }
 
          data3.set(t);
-      }else if(data3.type == 7){
-         Type7 t;
-         t.unk1 = dr.readFloat(addr + 4);
-         data3.set(t);
-      }else if(data3.type == 11){
-         Type11 t;
+      }else if(data3.type == 6){
+         Type6 t;
 
          int offsetToFloats = dr.readInt(addr + 4);
-         if(offsetToFloats == 0) ffxReadError(path, L"Type5");
+         if(offsetToFloats == 0) ffxReadError(path, L"Type6");
          int offsetToInts = dr.readInt(addr + 8);
-         if(offsetToInts == 0) ffxReadError(path, L"Type5");
+         if(offsetToInts == 0) ffxReadError(path, L"Type6");
 
          int count = dr.readInt(addr + 12);
          if(count != 1){
@@ -300,7 +342,106 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
             t.intThings.push_back(dr.readInt(offsetToInts + n * 4));
          }
 
-         
+         data3.set(t);
+      }else if(data3.type == 7){
+         Type7 t;
+         t.unk1 = dr.readFloat(addr + 4);
+         data3.set(t);
+      }else if(data3.type == 9){
+         Type9 t;
+
+         int offsetToFloats = dr.readInt(addr + 4);
+         if(offsetToFloats == 0) ffxReadError(path, L"Type9");
+         int offsetToInts = dr.readInt(addr + 8);
+         if(offsetToInts == 0) ffxReadError(path, L"Type9");
+
+         int count = dr.readInt(addr + 12);
+         if(count != 1){
+            int bp=42;
+         }
+         for(int n = 0; n < count; ++n){
+            t.floatThings.push_back(dr.readFloat(offsetToFloats + n * 4));
+            t.intThings.push_back(dr.readInt(offsetToInts + n * 4));
+         }
+
+         data3.set(t);
+      }else if(data3.type == 11){
+         Type11 t;
+
+         int offsetToFloats = dr.readInt(addr + 4);
+         if(offsetToFloats == 0) ffxReadError(path, L"Type11");
+         int offsetToInts = dr.readInt(addr + 8);
+         if(offsetToInts == 0) ffxReadError(path, L"Type11");
+
+         int count = dr.readInt(addr + 12);
+         if(count != 1){
+            int bp=42;
+         }
+         for(int n = 0; n < count; ++n){
+            t.floatThings.push_back(dr.readFloat(offsetToFloats + n * 4));
+            t.intThings.push_back(dr.readInt(offsetToInts + n * 4));
+         }
+
+         data3.set(t);
+      }else if(data3.type == 12){
+         Type12 t;
+
+         int offsetA = dr.readInt(addr + 4);
+         if(offsetA == 0) ffxReadError(path, L"Type12");
+         int offsetB = dr.readInt(addr + 8);
+         if(offsetB == 0) ffxReadError(path, L"Type12");
+
+         int count = dr.readInt(addr + 12);
+         for(int n = 0; n < count; ++n){
+            t.floatsA.push_back(dr.readFloat(offsetA + n * 4));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4));
+         }
+
+         data3.set(t);
+      }else if(data3.type == 19){
+         Type19 t;
+
+         int offsetA = dr.readInt(addr + 4);
+         if(offsetA == 0) ffxReadError(path, L"Type19");
+         int offsetB = dr.readInt(addr + 8);
+         if(offsetB == 0) ffxReadError(path, L"Type19");
+
+         t.count = dr.readInt(addr + 12);
+         for(int n = 0; n < t.count; ++n){
+            t.floatsA.push_back(dr.readFloat(offsetA + n * 4));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 0));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 4));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 8));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 12));
+         }
+
+         // Also weird data type, want to examine more
+         //if(ffx.id > 130){
+         //   int bp=42;
+         //}
+
+         data3.set(t);
+      }else if(data3.type == 20){
+         Type20 t;
+
+         int offsetA = dr.readInt(addr + 4);
+         if(offsetA == 0) ffxReadError(path, L"Type20");
+         int offsetB = dr.readInt(addr + 8);
+         if(offsetB == 0) ffxReadError(path, L"Type20");
+
+         t.count = dr.readInt(addr + 12);
+         for(int n = 0; n < t.count; ++n){
+            t.floatsA.push_back(dr.readFloat(offsetA + n * 4));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 0));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 4));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 8));
+            t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 12));
+         }
+
+         // Weird data type, want to examine more
+         //if(ffx.id > 130){
+         //   int bp=42;
+         //}
 
          data3.set(t);
       }else if(data3.type == 37){
@@ -385,7 +526,9 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          data3.set(t);
       }else if(data3.type == 133){
          Type133 t133;
+
          t133.ffxId = dr.readInt(addr + 4);
+         ffx.id = t133.ffxId;
          for(int n = 0; n < 7; ++n){
             t133.alwaysZero[n] = dr.readInt(addr + 8 + n * 4);
          }
@@ -396,7 +539,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          t133.house = dr.readInt(addr + 22 * 4);
          t133.ostrich = dr.readInt(addr + 23 * 4);
          if(t133.house == 0) ffxReadError(path, L"house is 0");
-         if(t133.ostrich == 2){
+         if(t133.ostrich == 1 || t133.ostrich == 2 || t133.ostrich == 5){
             t133.crepe1 = dr.readInt(t133.house + 0 * 4);
             if(t133.crepe1 != 0){
                t133.monkey = dr.readInt(t133.crepe1 + 0 * 4);
@@ -415,6 +558,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
                t133.turtle = dr.readInt(t133.crepe1 + 1 * 4);
                if(t133.turtle == 0) ffxReadError(path, L"turtle is 0");
                t133.turtleEgg = readData3(t133.turtle);
+               if(t133.turtleEgg.type != 136) ffxReadError(path, L"turtleEgg");
             }else{
                t133.monkey = 0;
                t133.monkeyTail1 = 0;
@@ -427,12 +571,30 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
             if(t133.crepe2 == 0) ffxReadError(path, L"crepe2 is 0");
             {
                t133.blossom = dr.readInt(t133.crepe2 + 0 * 4);
+               bool success = false;
+               for(int b : {14, 17, 79, 83, 87, 95}){
+                  if(t133.blossom == b){
+                     success = true;
+                     break;
+                  }
+               }
+               if(success == false){
+                  ffxReadError(path, L"blossom is unfamiliar");
+               }
                t133.blossomAST = readAST(t133.crepe2 + 1 * 4);
             }
             t133.tulip1 = dr.readInt(t133.house + 2 * 4);
+            if(t133.tulip1 != 0 && t133.tulip1 != 1) ffxReadError(path, L"tulip1 is unfamiliar");
             t133.tulip2 = dr.readInt(t133.house + 3 * 4);
+            if(t133.tulip2 != 1 && t133.tulip2 != 2) ffxReadError(path, L"tulip2 is unfamiliar");
+
+            //if(t133.ostrich == 5){
+            //   int bp=42;
+            //}
          }else{
-            ffxReadError(path, L"ostrich not supported");
+            wchar_t wBuffer[80];
+            swprintf(wBuffer, 80, L"ostrich %d not supported, addr = %d\n", t133.ostrich, addr + 23 * 4);
+            ffxReadError(path, wBuffer);
          }
 
          data3.set(t133);
@@ -457,7 +619,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          // No params
       }else{
          wchar_t wBuffer[80];
-         swprintf(wBuffer, sizeof(wBuffer), L"Data3 type %d unfamiliar\n", data3.type);
+         swprintf(wBuffer, sizeof(wBuffer), L"Data3 type %d unfamiliar, addr = %d\n", data3.type, addr);
          ffxReadError(path, wBuffer);
       }
 
@@ -574,6 +736,10 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
             t.unk3 = dr.readFloat(pond3Offset + 12);
             t.unk4 = dr.readInt(pond3Offset + 16);
             pond3->data.set(t);
+         }else if(type == 4){
+            Pond3Type4 t;
+            t.unk1 = dr.readInt(pond3Offset + 4);
+            pond3->data.set(t);
          }else if(type == 5){
             Pond3Type5 t;
             t.unk1 = dr.readInt(pond3Offset + 4);
@@ -585,7 +751,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
             pond3->data.set(t);
          }else{
             wchar_t wBuffer[80];
-            swprintf(wBuffer, sizeof(wBuffer), L"Pond3 type %d umfamiliar\n", type);
+            swprintf(wBuffer, sizeof(wBuffer), L"Pond3 type %d umfamiliar, addr = %d\n", type, pond3Offset);
             ffxReadError(path, wBuffer);
          }
 

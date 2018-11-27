@@ -53,6 +53,9 @@ struct Ffx{
 
    int unk1; // Always 1
    int unk2; // Always 0
+
+   // From Type133
+   int id = -1;
 };
 
 void loadFfxFile(Ffx& ffx, std::wstring path);

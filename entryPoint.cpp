@@ -2174,7 +2174,7 @@ int main(int argCount, char** args) {
    //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
 
-   //outputFfxAnalysis(L"f0000459.ffx");
+   outputFfxAnalysis(L"f0000212.ffx");
    //outputFfxAnalysis(L"f0000482.ffx");
    //outputFfxAnalysis(L"f0000511.ffx");
    //outputFfxAnalysis(L"f0002023.ffx");
