@@ -1797,7 +1797,10 @@ void outputFfxAnalysis(std::wstring fileName){
          }
 
          if(std::find(currentlyProcessing.begin(), currentlyProcessing.end(), l.address) != currentlyProcessing.end()){
-            ffxResearchError(path, L"Reference loop >_>");
+            //ffxResearchError(path, L"Reference loop >_>");
+            printf("Reference loop >_>\n");
+            outputText += "Reference loop >_>";
+            return;
          }
          currentlyProcessing.push_back(l.address);
 
@@ -2135,7 +2138,8 @@ void outputFfxAnalysis(std::wstring fileName){
 void loadEveryFfx(std::wstring dir){
    std::vector<std::wstring> fileList;
    {
-      std::wstring fileListPath = dir + L"fileList.txt";
+      std::wstring fileListPath = dir + L"fileListFull.txt";
+      //std::wstring fileListPath = dir + L"fileListLast.txt";
       FILE* file = _wfopen(fileListPath.c_str(), L"r");
 
       fseek(file, 0, SEEK_END);
@@ -2174,7 +2178,7 @@ int main(int argCount, char** args) {
    //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
 
-   outputFfxAnalysis(L"f0000212.ffx");
+   //outputFfxAnalysis(L"f0002022.ffx");
    //outputFfxAnalysis(L"f0000482.ffx");
    //outputFfxAnalysis(L"f0000511.ffx");
    //outputFfxAnalysis(L"f0002023.ffx");
@@ -2188,10 +2192,10 @@ int main(int argCount, char** args) {
    //   swprintf(wBuffer, 250, L"%sf%07d.ffx", dir.c_str(), ffxId);
    //   loadFfxFile(ffx, wBuffer);
    //}
-   //loadFfxFile(ffx, dir + L"f0002023.ffx");
+   loadFfxFile(ffx, dir + L"f0000482.ffx");
 
 
-   loadEveryFfx(dir);
+   //loadEveryFfx(dir);
 
 
    system("pause");
