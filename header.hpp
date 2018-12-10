@@ -58,7 +58,18 @@ struct Ffx{
    int id = -1;
 };
 
-void loadFfxFile(Ffx& ffx, std::wstring path);
+struct Pond2{
+   int address = -1;
+   int type = -1;
+   int totalSize = -1;
+   int preDataCount = -1;
+   int offsetToPreDataNumbers = -1;
+   int offsetToPreDataSubtypes = -1;
+   int offsetToSourceAST = -1;
+   std::vector<byte> data;
+};
+
+void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types = nullptr, std::vector<Pond2*>* allPond2s = nullptr);
 
 // entryPoint.cpp
 

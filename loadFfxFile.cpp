@@ -6,19 +6,21 @@ struct DataReader{
    std::vector<bool> bytesRead;
 
    int readInt(int addr){
-      //if(addr == 468){
-      //   int bp=42;
-      //}
-
-      std::vector<bool>& br = bytesRead;
+      std::vector<bool>& br = this->bytesRead;
       br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
-      return *reinterpret_cast<int*>(&bytes[addr]);
+      return *reinterpret_cast<int*>(&this->bytes[addr]);
+   }
+   
+   float readFloat(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
+      return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
 
-   float readFloat(int addr){
-      std::vector<bool>& br = bytesRead;
-      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
-      return *reinterpret_cast<float*>(&bytes[addr]);
+   byte readByte(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr] = true;
+      return *reinterpret_cast<byte*>(&this->bytes[addr]);
    }
 };
 
@@ -94,15 +96,7 @@ struct Pond1{
    std::vector<FlexibleData> data3s;
 };
 
-struct Pond2{
-   int someCount = -1;
-   int totalSize = -1;
-   int alwaysZero = -1;
-   int offset1 = -1;
-   int offset2 = -1;
-   int offsetToSourceAST = -1;
-   std::vector<int> unknownData;
-};
+// Pond2 in header
 
 struct Pond3{
    FlexibleData data;
@@ -128,6 +122,8 @@ struct Type3{
    std::vector<int> intThings;
 };
 
+// 4 and 5 are Pond2 subtypes (but 5 is below...)
+
 struct Type5{
    std::vector<float> floatThings;
    std::vector<int> intThings;
@@ -141,6 +137,8 @@ struct Type6{
 struct Type7{
    float unk1;
 };
+
+// 8 is a pond2 subtype
 
 struct Type9{
    std::vector<float> floatThings;
@@ -169,6 +167,8 @@ struct Type14{
    int count;
 };
 
+// 16 and 17 are pond2 subtypes
+
 struct Type19{
    std::vector<float> floatsA;
    std::vector<float> floatsB;
@@ -180,6 +180,10 @@ struct Type20{
    std::vector<float> floatsB;
    int count;
 };
+
+// 25 and 28 are pond2 subtypes (despite the below...)
+
+// 27 to 32 are pond2 types
 
 struct Type37{
    int refFfxId;
@@ -246,6 +250,8 @@ struct Type81{
    float unk1;
    float unk2;
 };
+
+// 84 is a pond2 type
 
 struct Type85{
    float unk1;
@@ -421,7 +427,7 @@ struct Type140{
 };
 
 
-void loadFfxFile(Ffx& ffx, std::wstring path){
+void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std::vector<Pond2*>* allPond2s){
    ffx = Ffx();
 
    DataReader dr;
@@ -446,10 +452,24 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
    dr.bytesRead.resize(dr.bytes.size());
    auto& br = dr.bytesRead;
 
-   bool hasReadPond3Yet = false;
+   //bool hasReadPond3Yet = false;
+   int lastPond1DataOffset = 0;
 
    std::function<AST(int)> readAST;
    std::function<FlexibleData(int)> readData3;
+   auto readPadding = [&](int addr, int multiple) -> void{
+      int firstAddress = addr;
+      while(addr % multiple != 0){
+         if(dr.bytesRead[addr]){
+            ffxReadError(path, L"padding already read");
+         }
+         int zero = dr.readInt(addr);
+         if(zero != 0){
+            ffxReadError(path, L"padding not zero");
+         }
+         addr += 4;
+      }
+   };
    readData3 = [&](int addr) -> FlexibleData{
       FlexibleData data3;
 
@@ -1037,8 +1057,13 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
          printf("AST's axisNumber is unfamiliar: %d\n", ast.axisNumber);
       }
 
+      if(pond2Offset % 16 != 0){
+         ffxReadError(path, L"16-byte alignment");
+      }
+
       if(pond1Offset){
          Pond1* pond1 = new Pond1;
+         ast.pond1 = pond1;
 
          int lastAddr;
          for(int n = 0; n < moose1; ++n){
@@ -1047,50 +1072,449 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
             pond1->data3s.push_back(readData3(offsetToData3));
          }
 
-         lastAddr += 4;
-
-         // Check byte alignment
-         //if(moose1 && lastAddr % 16 != 0){
-         //   while(lastAddr % 16 != 0){
-         //      int prev1 = dr.readInt(lastAddr - 8);
-         //      int prev2 = dr.readInt(lastAddr - 4);
-         //      int padding = dr.readInt(lastAddr);
-         //      if(padding != 0){
-         //         ffxReadError(path, L"padding is not 0");
-         //      }
-         //      lastAddr += 4;
-         //   }
-         //}
-
-         ast.pond1 = pond1;
+         if(lastAddr > lastPond1DataOffset){
+            lastPond1DataOffset = lastAddr;
+         }
       }
 
       if(pond2Offset){
          Pond2* pond2 = new Pond2;
+         ast.pond2 = pond2;
 
-         pond2->someCount = dr.readInt(pond2Offset + 0);
+         pond2->address = pond2Offset;
+         pond2->type = dr.readInt(pond2Offset + 0);
          pond2->totalSize = dr.readInt(pond2Offset + 4);
-         pond2->alwaysZero = dr.readInt(pond2Offset + 8);
-         pond2->offset1 = dr.readInt(pond2Offset + 12);
-         pond2->offset2 = dr.readInt(pond2Offset + 16);
+         pond2->preDataCount = dr.readInt(pond2Offset + 8);
+         //int snc = pond2->preDataCount;
+         //if(snc != 0 && snc != 1 && snc != 2 && snc != 3 && snc != 5 && snc != 6){
+         //   ffxReadError(path, L"pond2 unk1");
+         //}
+         pond2->offsetToPreDataNumbers = dr.readInt(pond2Offset + 12);
+         pond2->offsetToPreDataSubtypes = dr.readInt(pond2Offset + 16);
+         if(pond2->offsetToPreDataSubtypes - pond2->offsetToPreDataNumbers != pond2->preDataCount * 4){
+            ffxReadError(path, L"pond2 someNumbersCount");
+         }
          pond2->offsetToSourceAST = dr.readInt(pond2Offset + 20);
-         for(int n = 24; n < pond2->totalSize; n += 4){
-            pond2->unknownData.push_back(dr.readInt(pond2Offset + n));
+         for(int n = 24; n < pond2->totalSize; ++n){
+            pond2->data.push_back(dr.readByte(pond2Offset + n));
          }
 
-         ast.pond2 = pond2;
+         if(allPond2Types){
+            allPond2Types->insert(pond2->type);
+            allPond2s->push_back(pond2);
+         }
+
+         DataReader drP;
+         drP.bytes = pond2->data;
+         drP.bytesRead.resize(drP.bytes.size());
+
+         int currentDataOffset = 0;
+
+         auto readInt = [&]() -> int{
+            int result = drP.readInt(currentDataOffset);
+            currentDataOffset += 4;
+            return result;
+         };
+         auto readFloat = [&]() -> float{
+            float result = drP.readFloat(currentDataOffset);
+            currentDataOffset += 4;
+            return result;
+         };
+         auto readSubtype = [&](int readAtLocalOffsetInstead = 0) -> void{
+            if(readAtLocalOffsetInstead == 0){
+               readAtLocalOffsetInstead = currentDataOffset;
+               currentDataOffset += 8;
+            }
+            int subtype = drP.readInt(readAtLocalOffsetInstead + 0);
+            int fullOffset = drP.readInt(readAtLocalOffsetInstead + 4);
+            int offset = fullOffset - pond2->address - 24;
+
+            if(subtype == 0){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 4){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 5){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2 + 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 6){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+               int index = drP.readInt(offset + 4 + (floatCount * 2) * 4);
+            }else if(subtype == 7){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2 + 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+               int index = drP.readInt(offset + 4 + (floatCount * 2 + 2) * 4);
+            }else if(subtype == 8){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 4; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 9){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 4 + 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 12){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 16){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 17){
+               int floatCount = drP.readInt(offset + 0);
+               for(int n = 0; n < floatCount * 2 + 2; ++n){
+                  drP.readFloat(offset + 4 + n * 4);
+               }
+            }else if(subtype == 24){
+               drP.readFloat(offset + 0);
+            }else if(subtype == 25){
+               drP.readFloat(offset + 0);
+               drP.readFloat(offset + 4);
+               drP.readFloat(offset + 8);
+            }else if(subtype == 26){
+               drP.readFloat(offset + 0);
+               drP.readInt(offset + 4);
+            }else if(subtype == 27){
+               drP.readFloat(offset + 0);
+               drP.readFloat(offset + 4);
+               drP.readFloat(offset + 8);
+               drP.readFloat(offset + 12);
+            }else if(subtype == 28){
+               if(fullOffset != 0){
+                  ffxReadError(path, L"Pond2 subtype 28 offset not 0");
+               }
+            }else{
+               wchar_t wBuffer[80];
+               swprintf(wBuffer, sizeof(wBuffer), L"Pond2 subtype %d unfamiliar, addr = %d\n", subtype, fullOffset);
+               ffxReadError(path, wBuffer);
+            }
+         };
+         auto readSubtypes = [&](int count) -> void{
+            for(int n = 0; n < count; ++n){
+               readSubtype();
+            }
+         };
+
+         // Pre data
+         if(pond2->preDataCount > 0){
+            if(pond2->offsetToPreDataNumbers >= pond2->address + pond2->totalSize){
+               ffxReadError(path, L"pond2 offsetToSomeNumbers is outside data");
+            }else{
+               int localNumbersOffset = pond2->offsetToPreDataNumbers - pond2->address - 24;
+               int localSubtypesOffset = pond2->offsetToPreDataSubtypes - pond2->address - 24;
+               for(int n = 0; n < pond2->preDataCount; ++n){
+                  drP.readInt(localNumbersOffset + n * 4);
+                  readSubtype(localSubtypesOffset + n * 8);
+               }
+            }
+         }
+            
+         // Main data
+         if(pond2->type == 27){
+            readFloat();
+            readFloat();
+            readFloat();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            int texId = readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(10);
+            readInt();
+            readInt();
+            readInt();
+            readFloat();
+         }else if(pond2->type == 28){
+            readSubtypes(3);
+            readInt();
+         }else if(pond2->type == 29){
+            readSubtypes(5);
+            readInt();
+         }else if(pond2->type == 30){
+            readSubtypes(4);
+            readFloat();
+            readInt();
+            readInt();
+         }else if(pond2->type == 31){
+            readSubtypes(4);
+            readInt();
+            readInt();
+         }else if(pond2->type == 32){
+            readSubtypes(6);
+            readInt();
+            readInt();
+         }else if(pond2->type == 40){
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readFloat();
+            int texId = readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readInt();
+            readInt();
+            readSubtypes(4);
+            readFloat();
+            readFloat();
+            readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(4);
+            readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(1);
+            readInt();
+            readFloat();
+            readSubtypes(2);
+            readInt();
+         }else if(pond2->type == 43){
+            readFloat();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            int texId = readInt();
+            readInt();
+            readInt();
+            readInt();
+            readInt();
+            readInt();
+            readSubtypes(13);
+            readInt();
+         }else if(pond2->type == 55){
+            readSubtypes(3);
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readFloat();
+         }else if(pond2->type == 59){
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            int texId = readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readInt();
+            readSubtypes(5);
+            readInt();
+            readInt();
+            readSubtypes(8);
+            readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readFloat();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+         }else if(pond2->type == 61){
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            int modelId = readInt();
+            readInt();
+            readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(3);
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readFloat();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(1);
+            readInt();
+            readInt();
+            readSubtypes(10);
+            readInt();
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+         }else if(pond2->type == 66){
+            readFloat();
+            readFloat();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readFloat();
+            readInt();
+            readSubtypes(26);
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+         }else if(pond2->type == 70){
+            readFloat();
+            readFloat();
+            readFloat();
+            readInt();
+            readFloat();
+            int texId1 = readInt();
+            int texId2 = readInt();
+            int texId3 = readInt();
+            readInt();
+            readInt();
+            readInt();
+            readSubtypes(30);
+            readInt();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readInt();
+            readInt();
+            readFloat();
+            readInt();
+            readFloat();
+            readInt();
+         }else if(pond2->type == 71){
+            readFloat();
+            readFloat();
+            readFloat();
+            readInt();
+            readFloat();
+            int texId = readInt();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readInt();
+            readInt();
+            readSubtypes(10);
+            readInt();
+            readInt();
+            readSubtypes(10);
+            readInt();
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readInt();
+            readInt();
+            readInt();
+            readFloat();
+            readInt();
+            readFloat();
+            readInt();
+         }else if(pond2->type == 84){
+            readSubtypes(3);
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readFloat();
+            readSubtypes(1);
+            readInt();
+         }else if(pond2->type == 105){
+            readSubtypes(3);
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readFloat();
+            readSubtypes(1);
+            readInt();
+            readSubtypes(1);
+         }else if(pond2->type == 107){
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            int texId = readInt();
+            readInt();
+            readSubtypes(7);
+         }else if(pond2->type == 108){
+            readFloat();
+            readFloat();
+            readFloat();
+            readInt();
+            readFloat();
+            int ffxId = readInt();
+            readInt();
+            readInt();
+            readInt();
+            int shouldBeZero = readInt();
+            if(shouldBeZero != 0) ffxReadError(path, L"Pond2");
+            readSubtypes(12);
+            readInt();
+            readInt();
+            readSubtypes(14);
+            readInt();
+            readInt();
+            readInt();
+            readFloat();
+            readInt();
+         }else{
+            ffxReadError(path, L"pond2 unknown type");
+         }
+
+         if(pond2->address + 24 + currentDataOffset != pond2->offsetToPreDataNumbers){
+            ffxReadError(path, L"pond2 offsetToSomeNumbers");
+         }
+
+         bool hasMissedAtLeastOne = false;
+         for(size_t n = 0; n < drP.bytesRead.size(); ++n){
+            if(drP.bytesRead[n] == false){
+               if(hasMissedAtLeastOne == false){
+                  wprintf(L"%s pond2 @ %d has not been read 100%%\n", path.c_str(), pond2->address);
+                  hasMissedAtLeastOne = true;
+               }
+
+               if(n % 4 == 0){
+                  printf("int @ %6d (%d) has not been read\n", pond2->address + 24 + n, *((int*)(&drP.bytes[n])));
+               }
+            }
+         }
+
+         if(hasMissedAtLeastOne){
+            printf("\n\n");
+         }
+
+         readPadding(pond2->address + pond2->totalSize, 16);
       }
 
       if(pond3Offset){
-         if(hasReadPond3Yet == false){
-            hasReadPond3Yet = true;
+         //if(hasReadPond3Yet == false){
+         //   hasReadPond3Yet = true;
 
-            int padding1 = dr.readInt(pond3Offset - 8);
-            int padding2 = dr.readInt(pond3Offset - 4);
-            if(padding1 != 0 || padding2 != 0){
-               int bp=42;
-            }
-         }
+         //   int padding1 = dr.readInt(pond3Offset - 8);
+         //   int padding2 = dr.readInt(pond3Offset - 4);
+         //   if(padding1 != 0 || padding2 != 0){
+         //      int bp=42;
+         //   }
+         //}
 
          Pond3* pond3 = new Pond3;
 
@@ -1170,8 +1594,8 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
    }
    br[3] = br[2] = br[1] = br[0] = true;
 
-
-   ffx.version = (short)dr.readInt(4);
+   int versionRaw = dr.readInt(4);
+   ffx.version = (int)((short*)(&versionRaw))[1];
    int dataStartAfterHeader = dr.readInt(8);
    int data2Start = dr.readInt(12);
    int data2Count = dr.readInt(16);
@@ -1181,6 +1605,21 @@ void loadFfxFile(Ffx& ffx, std::wstring path){
    ffx.unk2 = dr.readInt(28);
 
    FlexibleData topData3 = readData3(dataStartAfterHeader);
+
+   if(lastPond1DataOffset != 0){
+      readPadding(lastPond1DataOffset + 4, 16);
+   }
+
+   // data2 section always starts at a multiple of 16 for some reason
+   int lastByteRead = 0;
+   for(size_t b = 0; b < dr.bytesRead.size(); b += 4){
+      if(dr.bytesRead[b] == true){
+         lastByteRead = b;
+      }else{
+         break;
+      }
+   }
+   readPadding(lastByteRead + 4, 16);
 
    // Count data2 and data3 offsets at the end as read
    for(int n = 0; n < data2Count; ++n){
