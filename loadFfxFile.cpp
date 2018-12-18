@@ -376,22 +376,6 @@ struct Type133{
    AST ast1;
    AST ast2;
    int house;
-      //int crepe1;
-      //   int monkey;
-      //      int monkeyTail1;
-      //      int monkeyTail2;
-      //         int hair;
-      //         AST hairAST;
-      //      int monkeyTail3;
-      //      int monkeyTail4;
-      //   int turtle;
-      //      FlexibleData turtleEgg;
-      //int crepe2;
-      //   int blossom;
-      //   AST blossomAST;
-      //int tulip1;
-      //int tulip2;
-   //int ostrich;
 
    int houseCount;
 
@@ -452,7 +436,6 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
    dr.bytesRead.resize(dr.bytes.size());
    auto& br = dr.bytesRead;
 
-   //bool hasReadPond3Yet = false;
    int lastPond1DataOffset = 0;
 
    std::function<AST(int)> readAST;
@@ -647,11 +630,6 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
             t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 12));
          }
 
-         // Also weird data type, want to examine more
-         //if(ffx.id > 130){
-         //   int bp=42;
-         //}
-
          data3.set(t);
       }else if(data3.type == 20){
          Type20 t;
@@ -669,11 +647,6 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
             t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 8));
             t.floatsB.push_back(dr.readFloat(offsetB + n * 4 * 4 + 12));
          }
-
-         // Weird data type, want to examine more
-         //if(ffx.id > 130){
-         //   int bp=42;
-         //}
 
          data3.set(t);
       }else if(data3.type == 37){
@@ -1061,6 +1034,14 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          ffxReadError(path, L"16-byte alignment");
       }
 
+      if((pond1Offset && pond2Offset) || (pond3Offset && pond2Offset)){
+         ffxReadError(path, L"pond2Offset not alone");
+      }
+
+      if(pond3Offset && !pond1Offset){
+         ffxReadError(path, L"pond3Offset but no pond1Offset");
+      }
+
       if(pond1Offset){
          Pond1* pond1 = new Pond1;
          ast.pond1 = pond1;
@@ -1085,16 +1066,15 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          pond2->type = dr.readInt(pond2Offset + 0);
          pond2->totalSize = dr.readInt(pond2Offset + 4);
          pond2->preDataCount = dr.readInt(pond2Offset + 8);
-         //int snc = pond2->preDataCount;
-         //if(snc != 0 && snc != 1 && snc != 2 && snc != 3 && snc != 5 && snc != 6){
-         //   ffxReadError(path, L"pond2 unk1");
-         //}
          pond2->offsetToPreDataNumbers = dr.readInt(pond2Offset + 12);
          pond2->offsetToPreDataSubtypes = dr.readInt(pond2Offset + 16);
          if(pond2->offsetToPreDataSubtypes - pond2->offsetToPreDataNumbers != pond2->preDataCount * 4){
             ffxReadError(path, L"pond2 someNumbersCount");
          }
          pond2->offsetToSourceAST = dr.readInt(pond2Offset + 20);
+         if(pond2->offsetToSourceAST != addr){
+            ffxReadError(path, L"pond2 offsetToSourceAST");
+         }
          for(int n = 24; n < pond2->totalSize; ++n){
             pond2->data.push_back(dr.readByte(pond2Offset + n));
          }
@@ -1506,16 +1486,6 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
       }
 
       if(pond3Offset){
-         //if(hasReadPond3Yet == false){
-         //   hasReadPond3Yet = true;
-
-         //   int padding1 = dr.readInt(pond3Offset - 8);
-         //   int padding2 = dr.readInt(pond3Offset - 4);
-         //   if(padding1 != 0 || padding2 != 0){
-         //      int bp=42;
-         //   }
-         //}
-
          Pond3* pond3 = new Pond3;
 
          pond3->data.type = dr.readInt(pond3Offset + 0);
