@@ -118,10 +118,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entryPoint.cpp" />
+    <ClCompile Include="ffxToJson.cpp" />
+    <ClCompile Include="json.cpp" />
     <ClCompile Include="loadFfxFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="header.hpp" />
+    <ClInclude Include="json.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
