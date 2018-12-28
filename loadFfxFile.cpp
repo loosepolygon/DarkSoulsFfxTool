@@ -1,29 +1,6 @@
 #include "header.hpp"
 
 
-struct DataReader{
-   std::vector<byte> bytes;
-   std::vector<bool> bytesRead;
-
-   int readInt(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
-      return *reinterpret_cast<int*>(&this->bytes[addr]);
-   }
-   
-   float readFloat(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
-      return *reinterpret_cast<float*>(&this->bytes[addr]);
-   }
-
-   byte readByte(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr] = true;
-      return *reinterpret_cast<byte*>(&this->bytes[addr]);
-   }
-};
-
 struct FlexibleData{
    int type = -1;
 
@@ -659,6 +636,9 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
             t.ast = readAST(astOffset);
          }
          t.zero = dr.readInt(addr + 12);
+         if(t.zero != 0){
+            ffxReadError(path, L"not 0");
+         }
 
          data3.set(t);
       }else if(data3.type == 38){
@@ -671,6 +651,9 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
             t.ast = readAST(astOffset);
          }
          t.zero = dr.readInt(addr + 12);
+         if(t.zero != 0){
+            ffxReadError(path, L"not 0");
+         }
 
          data3.set(t);
       }else if(data3.type == 44){
@@ -807,21 +790,14 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          t.data3 = readData3(data3Offset);
 
          data3.set(t);
-      }else if(data3.type == 120){
-         Type120 t;
-         int data3OffsetA = dr.readInt(addr + 4);
-         int data3OffsetB = dr.readInt(addr + 8);
-         t.data3A = readData3(data3OffsetA);
-         t.data3B = readData3(data3OffsetB);
+      }else if(data3.type == 111){
+         Type115 t;
+         t.unk1 = dr.readInt(addr + 4);
          data3.set(t);
       }else if(data3.type == 112){
          // No params
       }else if(data3.type == 113){
          // No params
-      }else if(data3.type == 111){
-         Type115 t;
-         t.unk1 = dr.readInt(addr + 4);
-         data3.set(t);
       }else if(data3.type == 114){
          Type114 t;
          int all = dr.readInt(addr + 4);
@@ -832,6 +808,15 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
       }else if(data3.type == 115){
          Type115 t;
          t.unk1 = dr.readInt(addr + 4);
+         data3.set(t);
+      }else if(data3.type == 120){
+         Type120 t;
+
+         int data3OffsetA = dr.readInt(addr + 4);
+         int data3OffsetB = dr.readInt(addr + 8);
+         t.data3A = readData3(data3OffsetA);
+         t.data3B = readData3(data3OffsetB);
+
          data3.set(t);
       }else if(data3.type == 121){
          Type121 t;
@@ -978,7 +963,12 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          int type133Count = dr.readInt(addr + 16);
          for(int n = 0; n < type133Count; ++n){
             int offsetToType133 = dr.readInt(offsetToArrayOfOffsets + n * 4);
-            t134.type133s.push_back(*readData3(offsetToType133).get<Type133>());
+            FlexibleData data3 = readData3(offsetToType133);
+            Type133* t133 = data3.get<Type133>();
+            if(t133->ffxId != t134.ffxId){
+               ffxReadError(path, L"ffxId mismatch in Type134");
+            }
+            t134.type133s.push_back(*t133);
          }
 
          data3.set(t134);

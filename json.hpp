@@ -390,29 +390,46 @@ class JSON
 
         string dump( int depth = 1, string tab = "  ") const {
             string pad = "";
-            for( int i = 0; i < depth; ++i, pad += tab );
+            for(int i = 0; i < depth; ++i){
+               pad += tab;
+            }
 
             switch( Type ) {
                 case Class::Null:
                     return "null";
                 case Class::Object: {
-                    string s = "{\n";
-                    bool skip = true;
-                    for( auto &p : *Internal.Map ) {
-                        if( !skip ) s += ",\n";
-                        s += ( pad + "\"" + p.first + "\" : " + p.second.dump( depth + 1, tab ) );
-                        skip = false;
+                    if(Internal.Map->size() > 0){
+                       string s = "{\n";
+                       bool skip = true;
+                       for( auto &p : *Internal.Map ) {
+                           if( !skip ) s += ",\n";
+                           s += ( pad + "\"" + p.first + "\" : " + p.second.dump( depth + 1, tab ) );
+                           skip = false;
+                       }
+                       s += ( "\n" + pad.erase( 0, tab.size() ) + "}" ) ;
+                       return s;
+                    }else{
+                       return "{}";
                     }
-                    s += ( "\n" + pad.erase( 0, 2 ) + "}" ) ;
-                    return s;
                 }
                 case Class::Array: {
                     string s = "[";
-                    bool skip = true;
+                    bool isFirst = true;
+                    bool isObjects = false;
                     for( auto &p : *Internal.List ) {
-                        if( !skip ) s += ", ";
+                       if(isFirst){
+                          if(p.JSONType() == json::JSON::Class::Object){
+                             isObjects = true;
+                             s += "\n" + pad;
+                          }
+                       }else{
+                           s += ", ";
+                       }
                         s += p.dump( depth + 1, tab );
-                        skip = false;
+                        isFirst = false;
+                    }
+                    if(isObjects){
+                       s += "\n" + pad.erase( 0, tab.size() );
                     }
                     s += "]";
                     return s;

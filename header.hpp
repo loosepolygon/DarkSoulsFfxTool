@@ -43,8 +43,28 @@ int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
    return findResult;
 }
 
+struct DataReader{
+   std::vector<byte> bytes;
+   std::vector<bool> bytesRead;
 
-void ffxReadError(const std::wstring& path, const std::wstring& text);
+   int readInt(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
+      return *reinterpret_cast<int*>(&this->bytes[addr]);
+   }
+
+   float readFloat(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
+      return *reinterpret_cast<float*>(&this->bytes[addr]);
+   }
+
+   byte readByte(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr] = true;
+      return *reinterpret_cast<byte*>(&this->bytes[addr]);
+   }
+};
 
 // loadFfxFile.cpp
 
@@ -71,8 +91,14 @@ struct Pond2{
 
 void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types = nullptr, std::vector<Pond2*>* allPond2s = nullptr);
 
+// ffxToJson.cpp
+
+void ffxToJson(std::wstring ffxPath, std::wstring jsonPath);
+
 // entryPoint.cpp
 
 extern FILE* currentGlobalFile;
 
 void outputFfxAnalysis(std::wstring fileName);
+
+void ffxReadError(const std::wstring& path, const std::wstring& text);

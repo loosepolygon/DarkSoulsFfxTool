@@ -2246,11 +2246,20 @@ int main(int argCount, char** args) {
    //   swprintf(wBuffer, 250, L"%sf%07d.ffx", dir.c_str(), ffxId);
    //   loadFfxFile(ffx, wBuffer);
    //}
+
    //loadFfxFile(ffx, dir + L"f0000511.ffx");
 
-   loadEveryFfx(dir);
+   //loadEveryFfx(dir);
 
    //loadFfxFile(ffx, L"DSR_f0000881.ffx");
+
+
+   for(int ffxId : {13520}){
+      wchar_t wBuffer[250];
+      swprintf(wBuffer, 250, L"%sf%07d.ffx", dir.c_str(), ffxId);
+      std::wstring ffxPath = wBuffer;
+      ffxToJson(ffxPath, ffxPath + L".json");
+   }
 
 
    system("pause");
