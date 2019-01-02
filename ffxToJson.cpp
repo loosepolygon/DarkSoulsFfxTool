@@ -389,7 +389,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                for(int n = 0; n < floatCount * 2 + 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
-               obj["index"] = drP.readInt(offset + 4 + (floatCount * 2 + 2) * 4);
+               obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2 + 2) * 4);
             }else if(subtype == 8){
                obj["note"] = "Multiple of 4";
                json::JSON& floats = obj["floats"] = json::Array();
@@ -784,7 +784,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             int data3Offset = dr.readInt(linksOffset + l * 8 + 4);
 
             json::JSON entry = {
-               "index", (linkedHouseOffset - housesOffset) / (4 * 4),
+               "houseIndex", (linkedHouseOffset - housesOffset) / (4 * 4),
                "data3", readData3(data3Offset)
             };
 

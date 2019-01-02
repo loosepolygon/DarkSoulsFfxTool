@@ -2243,13 +2243,15 @@ void importEveryFfx(std::wstring dir){
       std::wstringstream ss(fullText);
       std::wstring item;
       while (std::getline(ss, item, L'\n')) {
-         fileList.push_back(item);
+         if(item[0] != '\0'){
+            fileList.push_back(item);
+         }
       }
    }
 
    system("mkdir json");
-   for(const std::wstring& path : fileList){
-      ffxToJson(dir + path, L"json/" + path + L".json");
+   for(const std::wstring& fileName : fileList){
+      ffxToJson(dir + fileName, L"json/" + fileName + L".json");
    }
 }
 
