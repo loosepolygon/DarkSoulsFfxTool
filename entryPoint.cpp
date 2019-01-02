@@ -2221,6 +2221,38 @@ void loadEveryFfx(std::wstring dir){
    int bp=42;
 }
 
+void importEveryFfx(std::wstring dir){
+   std::vector<std::wstring> fileList;
+   {
+      std::wstring fileListPath = dir + L"fileListFull.txt";
+      //std::wstring fileListPath = dir + L"fileListLast.txt";
+      FILE* file = _wfopen(fileListPath.c_str(), L"r");
+
+      fseek(file, 0, SEEK_END);
+      long fileSize = ftell(file);
+      fseek(file, 0, SEEK_SET);
+
+      wchar_t endianness;
+      fread(&endianness, sizeof(wchar_t), 1, file);
+
+      std::wstring fullText;
+      fullText.resize(fileSize - sizeof(wchar_t));
+      fread(&fullText[0], sizeof(fullText[0]), fullText.size(), file);
+      fclose(file);
+
+      std::wstringstream ss(fullText);
+      std::wstring item;
+      while (std::getline(ss, item, L'\n')) {
+         fileList.push_back(item);
+      }
+   }
+
+   system("mkdir json");
+   for(const std::wstring& path : fileList){
+      ffxToJson(dir + path, L"json/" + path + L".json");
+   }
+}
+
 int main(int argCount, char** args) {
    printf("Hello\n");
 
@@ -2254,14 +2286,16 @@ int main(int argCount, char** args) {
    //loadFfxFile(ffx, L"DSR_f0000881.ffx");
 
 
-   for(int ffxId : {13520}){
-      wchar_t wBuffer[250];
-      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
-      std::wstring ffxPath = wBuffer;
-      swprintf(wBuffer, sizeof(wBuffer), L"f%07d.ffx.json", ffxId);
-      std::wstring jsonPath = wBuffer;
-      ffxToJson(ffxPath, jsonPath);
-   }
+   //for(int ffxId : {13520}){
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
+   //   std::wstring ffxPath = wBuffer;
+   //   swprintf(wBuffer, sizeof(wBuffer), L"f%07d.ffx.json", ffxId);
+   //   std::wstring jsonPath = wBuffer;
+   //   ffxToJson(ffxPath, jsonPath);
+   //}
+
+   importEveryFfx(dir);
 
 
    system("pause");

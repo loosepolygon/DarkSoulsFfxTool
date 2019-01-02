@@ -48,7 +48,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
       if(type == 112 || type == 113 || type == 129 || type == 130 || type == 131 || type == 132 || type == 136){
          // empty
-      }else if(type == 1 || type == 44 || type == 46 || type == 59 || type == 60 || type == 66 || type == 68 || type == 71 || type == 111 || type == 138 || type == 139){
+      }else if(type == 1 || type == 44 || type == 46 || type == 59 || type == 60 || type == 66 || type == 68 || type == 71 || type == 111 || type == 115 || type == 138 || type == 139){
          data3["unk1"] = dr.readInt(addr + 4);
       }else if(type == 7 || type == 70){
          data3["unk1"] = dr.readFloat(addr + 4);
@@ -589,10 +589,11 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readZero();
             readSubtypes(3);
             readZero();
+            readZero();
             readInt();
             readFloat();
             readZero();
-            readSubtypes(1);
+            readSubtypes(1);//
             readInt();
             readInt();
             readSubtypes(10);
@@ -675,6 +676,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readInt();
             readSubtypes(1);
          }else if(type == 107){
+            readZero();
             readZero();
             readInt("texId");
             readInt();
