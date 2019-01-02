@@ -26,6 +26,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    char sBuffer[200];
    wchar_t wBuffer[200];
 
+   json::JSON root;
+   root["jsonVersion"] = 1;
+   root["ffxVersion"] = -1;
+   root["unk1"] = -1;
+   root["unk2"] = -1;
+   root["ffxId"] = -1;
+   root["Type133s"] = json::Array();
+   root["ASTs"] = json::Array();
+   json::JSON& type133s = root["Type133s"];
+   json::JSON& asts = root["ASTs"];
 
    std::function<json::JSON(int)> readData3;
    std::function<json::JSON(int)> readAST;
@@ -171,17 +181,17 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          data3["refFfxId"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["ast"] = readAST(astOffset);
+            data3["astIndex"] = readAST(astOffset);
          }else{
-            data3["ast"] = {};
+            data3["astIndex"] = -1;
          }
       }else if(type == 38){
          data3["unk1"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["ast"] = readAST(astOffset);
+            data3["astIndex"] = readAST(astOffset);
          }else{
-            data3["ast"] = {};
+            data3["astIndex"] = -1;
          }
       }else if(type == 45 || type == 47 || type == 87 || type == 114){
          int all = dr.readInt(addr + 4);
@@ -207,12 +217,26 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    };
 
    DataReader drP; // pond2
-   readAST = [&](int addr) -> json::JSON{
+   readAST = [&](int addr) -> int{
       int pond1Offset = dr.readInt(addr+0);
       int pond2Offset = dr.readInt(addr+16);
       int pond3Offset = dr.readInt(addr+20);
 
+      for(json::JSON& ast : asts.ArrayRange()){
+         int offset = ast["offset"].ToInt();
+         if(offset == addr){
+            int bp=42;
+         }
+      }
+
+      int astIndex = asts.size();
+      json::JSON placeholder = {"offset", addr};
+      asts.append(std::move(placeholder));
+
       json::JSON ast = json::Object();
+      sprintf(sBuffer, "astIndex = %d", astIndex);
+      ast["note"] = sBuffer;
+      ast["offset"] = addr;
       ast["flag1"] = (bool)dr.readByte(addr + 12);
       ast["flag2"] = (bool)dr.readByte(addr + 13);
       ast["flag3"] = (bool)dr.readByte(addr + 14);
@@ -229,7 +253,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          int data3Count = dr.readInt(addr+4);
          for(int n = 0; n < data3Count; ++n){
             int offsetToData3 = dr.readInt(pond1Offset + n * 4);
-            data3s.append(readData3(offsetToData3));
+            data3s.append(std::move(readData3(offsetToData3)));
          }
 
          json::JSON& pond3 = ast["pond3"] = json::Object();
@@ -680,7 +704,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          }
       }
 
-      return std::move(ast);
+      asts[astIndex] = std::move(ast);
+
+      return astIndex;
    };
 
 
@@ -700,14 +726,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    int unk1 = dr.readInt(24);
    int unk2 = dr.readInt(28);
 
-   json::JSON root;
-   root["jsonVersion"] = 1;
    root["ffxVersion"] = version;
    root["unk1"] = unk1;
    root["unk2"] = unk2;
-   root["ffxId"] = -1;
-
-   json::JSON& type133s = root["Type133s"] = json::Array();
 
    int firstData3Type = dr.readInt(dataStartAfterHeader);
    int offsetToType133Offsets;
@@ -738,8 +759,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
       json::JSON t133 = json::Object();
       t133["always8Or10"] = dr.readInt(addr + 9 * 4);
-      t133["ast1"] = readAST(addr + 10 * 4);
-      t133["ast2"] = readAST(addr + 16 * 4);
+      t133["astIndex1"] = readAST(addr + 10 * 4);
+      t133["astIndex2"] = readAST(addr + 16 * 4);
       t133["houses"] = json::Array();
 
       int housesOffset = dr.readInt(addr + 22 * 4);
@@ -774,7 +795,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
             json::JSON entry = {
                "probablyType", dr.readInt(blossomOffset + b * blossomAndAstSize + 0),
-               "ast", readAST(blossomOffset + b * blossomAndAstSize + 4)
+               "astIndex", readAST(blossomOffset + b * blossomAndAstSize + 4)
             };
 
             blossoms.append(std::move(entry));
