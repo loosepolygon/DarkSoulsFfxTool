@@ -2256,9 +2256,11 @@ int main(int argCount, char** args) {
 
    for(int ffxId : {13520}){
       wchar_t wBuffer[250];
-      swprintf(wBuffer, 250, L"%sf%07d.ffx", dir.c_str(), ffxId);
+      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
       std::wstring ffxPath = wBuffer;
-      ffxToJson(ffxPath, ffxPath + L".json");
+      swprintf(wBuffer, sizeof(wBuffer), L"f%07d.ffx.json", ffxId);
+      std::wstring jsonPath = wBuffer;
+      ffxToJson(ffxPath, jsonPath);
    }
 
 

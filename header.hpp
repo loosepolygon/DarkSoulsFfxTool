@@ -93,7 +93,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types = nul
 
 // ffxToJson.cpp
 
-void ffxToJson(std::wstring ffxPath, std::wstring jsonPath);
+void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath);
 
 // entryPoint.cpp
 
