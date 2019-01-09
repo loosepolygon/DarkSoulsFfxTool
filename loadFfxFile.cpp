@@ -1,24 +1,6 @@
 #include "header.hpp"
 
 
-struct FlexibleData{
-   int type = -1;
-
-   template<typename T>
-   T* get(){
-      return reinterpret_cast<T*>(this->data.data());
-   }
-
-   template<typename T>
-   void set(T& t){
-      this->data.resize(sizeof(T));
-      *reinterpret_cast<T*>(this->data.data()) = t;
-   }
-
-private:
-   std::vector<int> data;
-};
-
 struct Pond3Type0{
    int unk1;
 };
@@ -75,9 +57,7 @@ struct Pond1{
 
 // Pond2 in header
 
-struct Pond3{
-   FlexibleData data;
-};
+// Pond3 in header
 
 struct AST{
    Pond1* pond1 = nullptr;
@@ -388,7 +368,7 @@ struct Type140{
 };
 
 
-void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std::vector<Pond2*>* allPond2s){
+void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std::vector<Pond2*>* allPond2s, std::vector<Pond3*>* allPond3s){
    ffx = Ffx();
 
    DataReader dr;
@@ -898,6 +878,7 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          Type133 t133;
 
          t133.ffxId = dr.readInt(addr + 4);
+         ffx.id = t133.ffxId;
          for(int n = 0; n < 7; ++n){
             t133.alwaysZero[n] = dr.readInt(addr + 8 + n * 4);
          }
@@ -1477,10 +1458,13 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
 
       if(pond3Offset){
          Pond3* pond3 = new Pond3;
+         allPond3s->push_back(pond3);
 
+         pond3->address = pond3Offset;
          pond3->data.type = dr.readInt(pond3Offset + 0);
 
          int type = pond3->data.type;
+
          if(type == 0){
             Pond3Type0 t;
             t.unk1 = dr.readInt(pond3Offset + 4);

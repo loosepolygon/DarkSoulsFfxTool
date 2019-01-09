@@ -100,7 +100,7 @@ class JSON
 
     union BackingData {
         BackingData( float d ) : Float( d ){}
-        BackingData( long   l ) : Int( l ){}
+        BackingData( int   l ) : Int( l ){}
         BackingData( bool   b ) : Bool( b ){}
         BackingData( string s ) : String( new string( s ) ){}
         BackingData()           : Int( 0 ){}
@@ -109,7 +109,7 @@ class JSON
         StraightMap<JSON>   *Map;
         string             *String;
         float              Float;
-        long                Int;
+        int                Int;
         bool                Bool;
     } Internal;
 
@@ -239,7 +239,7 @@ class JSON
         JSON( T b, typename enable_if<is_same<T,bool>::value>::type* = 0 ) : Internal( b ), Type( Class::Boolean ){}
 
         template <typename T>
-        JSON( T i, typename enable_if<is_integral<T>::value && !is_same<T,bool>::value>::type* = 0 ) : Internal( (long)i ), Type( Class::Integral ){}
+        JSON( T i, typename enable_if<is_integral<T>::value && !is_same<T,bool>::value>::type* = 0 ) : Internal( (int)i ), Type( Class::Integral ){}
 
         template <typename T>
         JSON( T f, typename enable_if<is_floating_point<T>::value>::type* = 0 ) : Internal( (float)f ), Type( Class::Floating ){}
@@ -351,8 +351,8 @@ class JSON
             return ok ? Internal.Float : 0.0f;
         }
 
-        long ToInt() const { bool b; return ToInt( b ); }
-        long ToInt( bool &ok ) const {
+        int ToInt() const { bool b; return ToInt( b ); }
+        int ToInt( bool &ok ) const {
             ok = (Type == Class::Integral);
             return ok ? Internal.Int : 0;
         }
@@ -620,7 +620,7 @@ namespace {
         string val, exp_str;
         char c;
         bool isDouble = false;
-        long exp = 0;
+        int exp = 0;
         while( true ) {
             c = str[offset++];
             if( (c == '-') || (c >= '0' && c <= '9') )

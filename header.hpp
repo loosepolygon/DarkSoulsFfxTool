@@ -66,6 +66,17 @@ struct DataReader{
    }
 };
 
+struct DataWriter{
+   std::vector<byte> bytes;
+
+   template<typename T>
+   void write(T t){
+      this->bytes.resize(this->bytes.size() + sizeof(T));
+      byte* dest = this->bytes.data() + (this->bytes.size() - sizeof(T));
+      *reinterpret_cast<T*>(dest) = t;
+   }
+};
+
 // loadFfxFile.cpp
 
 struct Ffx{
@@ -76,6 +87,24 @@ struct Ffx{
 
    // From Type133
    int id = -1;
+};
+
+struct FlexibleData{
+   int type = -1;
+
+   template<typename T>
+   T* get(){
+      return reinterpret_cast<T*>(this->data.data());
+   }
+
+   template<typename T>
+   void set(T& t){
+      this->data.resize(sizeof(T));
+      *reinterpret_cast<T*>(this->data.data()) = t;
+   }
+
+private:
+   std::vector<int> data;
 };
 
 struct Pond2{
@@ -89,11 +118,20 @@ struct Pond2{
    std::vector<byte> data;
 };
 
-void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types = nullptr, std::vector<Pond2*>* allPond2s = nullptr);
+struct Pond3{
+   int address;
+   FlexibleData data;
+};
+
+void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types = nullptr, std::vector<Pond2*>* allPond2s = nullptr, std::vector<Pond3*>* = nullptr);
 
 // ffxToJson.cpp
 
 void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath);
+
+// jsonToFfx.cpp
+
+void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 
 // entryPoint.cpp
 
@@ -102,3 +140,4 @@ extern FILE* currentGlobalFile;
 void outputFfxAnalysis(std::wstring fileName);
 
 void ffxReadError(const std::wstring& path, const std::wstring& text);
+void jsonReadError(const std::wstring& path, const std::wstring& text);

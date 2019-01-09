@@ -120,6 +120,7 @@
     <ClCompile Include="entryPoint.cpp" />
     <ClCompile Include="ffxToJson.cpp" />
     <ClCompile Include="json.cpp" />
+    <ClCompile Include="jsonToFfx.cpp" />
     <ClCompile Include="loadFfxFile.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -32,6 +32,12 @@ void ffxResearchError(const std::wstring& path, const std::wstring& text){
    throw;
 }
 
+void jsonReadError(const std::wstring& path, const std::wstring& text){
+   std::wstring errorMessage = L"Error reading json file '" + path + L"': " + text;
+   fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   throw;
+}
+
 //struct RawFfxFile{
 //   struct Header{
 //      char signature[4];
@@ -2156,7 +2162,7 @@ void loadEveryFfx(std::wstring dir){
 
       std::wstringstream ss(fullText);
       std::wstring item;
-      while (std::getline(ss, item, L'\n')) {
+      while (std::getline(ss, item, L'\n') && !item.empty()) {
          fileList.push_back(item);
       }
    }
@@ -2166,10 +2172,30 @@ void loadEveryFfx(std::wstring dir){
 
    for(const std::wstring& path : fileList){
       Ffx ffx;
-      loadFfxFile(ffx, dir + path, &allPond2Types, &allPond2s);
-   }
+      std::vector<Pond3*> allPond3s;
 
-   return;
+      loadFfxFile(ffx, dir + path, &allPond2Types, &allPond2s, &allPond3s);
+
+      // Pond3 research
+      //printf("\n\n\n\n-- ffx %d\n", ffx.id);
+      //std::sort(
+      //   allPond3s.begin(),
+      //   allPond3s.end(),
+      //   [&](Pond3* a, Pond3* b){return a->address < b->address;}
+      //);
+
+      //int hasType1Yet = false;
+      //for(Pond3* pond3 : allPond3s){
+      //   printf("   @%5d type %d\n", pond3->address, pond3->data.type);
+      //   if(pond3->data.type == 1){
+      //      hasType1Yet = true;
+      //   }else{
+      //      if(hasType1Yet){
+      //         ffxReadError(ffxPath, L"pond3 type 1 not last");
+      //      }
+      //   }
+      //}
+   }
 
    // Output pond2 types analysis
    //std::vector<int> allPond2TypesArray;
@@ -2183,40 +2209,40 @@ void loadEveryFfx(std::wstring dir){
    //}
 
    // Output pond2 specific type analysis
-   int researchingType = 107;
-   char sBuffer[200];
-   std::string outputText;
-   for(Pond2* pond2 : allPond2s){
-      if(pond2->type == researchingType && pond2->preDataCount == 0){
-         sprintf(sBuffer, "\n---------------- pond2 type %d ----------------\n", pond2->type);
-         outputText += sBuffer;
+   //int researchingType = 107;
+   //char sBuffer[200];
+   //std::string outputText;
+   //for(Pond2* pond2 : allPond2s){
+   //   if(pond2->type == researchingType && pond2->preDataCount == 0){
+   //      sprintf(sBuffer, "\n---------------- pond2 type %d ----------------\n", pond2->type);
+   //      outputText += sBuffer;
 
-         int* ip = (int*)pond2->data.data();
-         float* fp = (float*)ip;
-         int address = pond2->address + 6 * 4;
-         for(size_t n = 0; n < pond2->data.size(); ++n){
-            float floatAbsValue = fabs(fp[n]);
-            if(ip[n] == 0){
-               sprintf(sBuffer, "%6d 0\n", address);
-            }else if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f || ip[n] == -2147483647 - 1){
-               sprintf(sBuffer, "%6d float %f\n", address, fp[n]);
-            }else{
-               sprintf(sBuffer, "%6d int %d\n", address, ip[n]);
-            }
-            outputText += sBuffer;
+   //      int* ip = (int*)pond2->data.data();
+   //      float* fp = (float*)ip;
+   //      int address = pond2->address + 6 * 4;
+   //      for(size_t n = 0; n < pond2->data.size(); ++n){
+   //         float floatAbsValue = fabs(fp[n]);
+   //         if(ip[n] == 0){
+   //            sprintf(sBuffer, "%6d 0\n", address);
+   //         }else if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f || ip[n] == -2147483647 - 1){
+   //            sprintf(sBuffer, "%6d float %f\n", address, fp[n]);
+   //         }else{
+   //            sprintf(sBuffer, "%6d int %d\n", address, ip[n]);
+   //         }
+   //         outputText += sBuffer;
 
-            address += 4;
-         }
+   //         address += 4;
+   //      }
 
-         outputText += "\n\n";
-      }
-   }
+   //      outputText += "\n\n";
+   //   }
+   //}
 
-   char outputPath[80];
-   sprintf(outputPath, "P2T%03d.txt", researchingType);
-   FILE* file = fopen(outputPath, "w");
-   fwrite(outputText.data(), 1, outputText.size(), file);
-   fclose(file);
+   //char outputPath[80];
+   //sprintf(outputPath, "P2T%03d.txt", researchingType);
+   //FILE* file = fopen(outputPath, "w");
+   //fwrite(outputText.data(), 1, outputText.size(), file);
+   //fclose(file);
 
    int bp=42;
 }
@@ -2297,8 +2323,17 @@ int main(int argCount, char** args) {
    //   ffxToJson(ffxPath, jsonPath);
    //}
 
-   importEveryFfx(dir);
+   //importEveryFfx(dir);
 
+
+   for(int ffxId : {482}){
+      wchar_t wBuffer[250];
+      swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
+      std::wstring jsonPath = wBuffer;
+      swprintf(wBuffer, sizeof(wBuffer), L"rebuilt/f%07d.ffx", ffxId);
+      std::wstring ffxPath = wBuffer;
+      jsonToFfx(jsonPath, ffxPath);
+   }
 
    system("pause");
 }
