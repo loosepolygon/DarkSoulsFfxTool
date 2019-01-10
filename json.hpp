@@ -388,7 +388,7 @@ class JSON
             return JSONConstWrapper<deque<JSON>>( nullptr );
         }
 
-        string dump( int depth = 1, string tab = "  ") const {
+        string dump( int depth = 0, string tab = "  ") const {
             string pad = "";
             for(int i = 0; i < depth; ++i){
                pad += tab;
@@ -400,13 +400,22 @@ class JSON
                 case Class::Object: {
                     if(Internal.Map->size() > 0){
                        string s = "{\n";
+                       if(depth == 0){
+                          s += '\n';
+                       }
                        bool skip = true;
                        for( auto &p : *Internal.Map ) {
                            if( !skip ) s += ",\n";
                            s += ( pad + "\"" + p.first + "\" : " + p.second.dump( depth + 1, tab ) );
                            skip = false;
                        }
-                       s += ( "\n" + pad.erase( 0, tab.size() ) + "}" ) ;
+
+                       if(depth == 0){
+                          s += ( "\n" + pad.erase( 0, tab.size() ) + "\n}\n" ) ;
+                       }else{
+                          s += ( "\n" + pad.erase( 0, tab.size() ) + "}" ) ;
+                       }
+
                        return s;
                     }else{
                        return "{}";

@@ -1,7 +1,9 @@
 #include "header.hpp"
 
 bool hasErrored = false;
+
 FILE* currentGlobalFile = nullptr;
+int jsonVersion = 2;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
@@ -2326,7 +2328,7 @@ int main(int argCount, char** args) {
    //importEveryFfx(dir);
 
 
-   for(int ffxId : {482}){
+   for(int ffxId : {13520}){
       wchar_t wBuffer[250];
       swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
       std::wstring jsonPath = wBuffer;

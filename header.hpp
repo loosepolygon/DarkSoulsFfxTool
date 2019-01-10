@@ -136,6 +136,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 // entryPoint.cpp
 
 extern FILE* currentGlobalFile;
+extern int jsonVersion; // :/
 
 void outputFfxAnalysis(std::wstring fileName);
 

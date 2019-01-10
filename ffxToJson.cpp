@@ -27,18 +27,18 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    wchar_t wBuffer[200];
 
    json::JSON root;
-   root["jsonVersion"] = 1;
+   root["jsonVersion"] = ::jsonVersion;
    root["ffxVersion"] = -1;
    root["unk1"] = -1;
    root["unk2"] = -1;
    root["ffxId"] = -1;
    root["Type133s"] = json::Array();
-   root["ASTs"] = json::Array();
+   root["mainASTs"] = json::Array();
    json::JSON& type133s = root["Type133s"];
-   json::JSON& asts = root["ASTs"];
+   json::JSON& mainASTs = root["mainASTs"];
 
    std::function<json::JSON(int)> readData3;
-   std::function<json::JSON(int)> readAST;
+   std::function<json::JSON(int, json::JSON*)> readAST;
 
    readData3 = [&](int addr) -> json::JSON{
       json::JSON data3 = json::Object();
@@ -181,17 +181,17 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          data3["refFfxId"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["astIndex"] = readAST(astOffset);
+            data3["mainASTIndex"] = readAST(astOffset, nullptr);
          }else{
-            data3["astIndex"] = -1;
+            data3["mainASTIndex"] = -1;
          }
       }else if(type == 38){
          data3["unk1"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["astIndex"] = readAST(astOffset);
+            data3["mainASTIndex"] = readAST(astOffset, nullptr);
          }else{
-            data3["astIndex"] = -1;
+            data3["mainASTIndex"] = -1;
          }
       }else if(type == 45 || type == 47 || type == 87 || type == 114){
          int all = dr.readInt(addr + 4);
@@ -217,26 +217,25 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    };
 
    DataReader drP; // pond2
-   readAST = [&](int addr) -> int{
+   readAST = [&](int addr, json::JSON* destObjectInstead) -> int{
       int pond1Offset = dr.readInt(addr+0);
       int pond2Offset = dr.readInt(addr+16);
       int pond3Offset = dr.readInt(addr+20);
 
-      for(json::JSON& ast : asts.ArrayRange()){
-         int offset = ast["offset"].ToInt();
-         if(offset == addr){
-            int bp=42;
-         }
+      int mainAstIndex = -1;
+      if(destObjectInstead == nullptr){
+         mainAstIndex = mainASTs.size();
+         json::JSON placeholder = {};
+         mainASTs.append(std::move(placeholder));
       }
 
-      int astIndex = asts.size();
-      json::JSON placeholder = {"offset", addr};
-      asts.append(std::move(placeholder));
-
       json::JSON ast = json::Object();
-      sprintf(sBuffer, "astIndex = %d", astIndex);
+      if(destObjectInstead){
+         sprintf(sBuffer, "offset = %d", addr);
+      }else{
+         sprintf(sBuffer, "mainAstIndex = %d, offset = %d", mainAstIndex, addr);
+      }
       ast["note"] = sBuffer;
-      ast["offset"] = addr;
       ast["flag1"] = (bool)dr.readByte(addr + 12);
       ast["flag2"] = (bool)dr.readByte(addr + 13);
       ast["flag3"] = (bool)dr.readByte(addr + 14);
@@ -706,9 +705,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          }
       }
 
-      asts[astIndex] = std::move(ast);
-
-      return astIndex;
+      if(destObjectInstead){
+         *destObjectInstead = std::move(ast);
+         return -1;
+      }else{
+         mainASTs[mainAstIndex] = std::move(ast);
+         return mainAstIndex;
+      }
    };
 
 
@@ -761,10 +764,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
       json::JSON t133 = json::Object();
       t133["always8Or10"] = dr.readInt(addr + 9 * 4);
-      t133["astIndex1"] = readAST(addr + 10 * 4);
-      t133["astIndex2"] = readAST(addr + 16 * 4);
-      t133["houses"] = json::Array();
 
+      t133["preAST1"] = {};
+      t133["preAST2"] = {};
+      readAST(addr + 10 * 4, &(t133["preAST1"]));
+      readAST(addr + 16 * 4, &(t133["preAST2"]));
+
+      t133["houses"] = json::Array();
       int housesOffset = dr.readInt(addr + 22 * 4);
       int houseCount = dr.readInt(addr + 23 * 4);
       for(int h = 0; h < houseCount; ++h){
@@ -797,8 +803,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
             json::JSON entry = {
                "probablyType", dr.readInt(blossomOffset + b * blossomAndAstSize + 0),
-               "astIndex", readAST(blossomOffset + b * blossomAndAstSize + 4)
+               "blossomAST", {}
             };
+            readAST(blossomOffset + b * blossomAndAstSize + 4, &(entry["blossomAST"]));
 
             blossoms.append(std::move(entry));
          }
@@ -809,7 +816,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
       type133s.append(std::move(t133));
    }
 
-   std::string jsonText = root.dump(1, "   ");
+   std::string jsonText = root.dump(0, "   ");
    FILE* file = _wfopen(jsonPath.c_str(), L"w");
    fwrite(jsonText.data(), 1, jsonText.size(), file);
    fclose(file);
