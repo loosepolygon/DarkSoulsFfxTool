@@ -3,7 +3,7 @@
 bool hasErrored = false;
 
 FILE* currentGlobalFile = nullptr;
-int jsonVersion = 2;
+int jsonVersion = 1;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;

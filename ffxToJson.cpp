@@ -32,9 +32,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    root["unk1"] = -1;
    root["unk2"] = -1;
    root["ffxId"] = -1;
-   root["Type133s"] = json::Array();
+   root["type133s"] = json::Array();
    root["mainASTs"] = json::Array();
-   json::JSON& type133s = root["Type133s"];
+   json::JSON& type133s = root["type133s"];
    json::JSON& mainASTs = root["mainASTs"];
 
    std::function<json::JSON(int)> readData3;
@@ -235,17 +235,23 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
       }else{
          sprintf(sBuffer, "mainAstIndex = %d, offset = %d", mainAstIndex, addr);
       }
-      ast["note"] = sBuffer;
+      ast["note1"] = sBuffer;
+      ast["note2"] = "";
+      if(pond1Offset){
+         ast["astType"] = 1;
+         sprintf(sBuffer, "AST Type %d: %s", 1, "Unknown, has Data3s and optional struct");
+      }else if(pond2Offset){
+         ast["astType"] = 2;
+         sprintf(sBuffer, "AST Type %d: %s", 2, "Shader params and stuff?");
+      }else{
+         ast["astType"] = 0;
+         sprintf(sBuffer, "AST Type %d: %s", 0, "Empty");
+      }
+      ast["note2"] = sBuffer;
       ast["flag1"] = (bool)dr.readByte(addr + 12);
       ast["flag2"] = (bool)dr.readByte(addr + 13);
       ast["flag3"] = (bool)dr.readByte(addr + 14);
-      if(pond1Offset){
-         ast["astType"] = "Unknown, has Data3s and optional struct";
-      }else if(pond2Offset){
-         ast["astType"] = "Shader params and stuff?";
-      }else{
-         ast["astType"] = "Empty";
-      }
+      
 
       if(pond1Offset){
          json::JSON& data3s = ast["pond1Data3s"] = json::Array();
@@ -781,7 +787,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          int blossomCount = dr.readInt(houseOffset + 12);
 
          json::JSON house = json::Object();
-         sprintf(sBuffer, "house index = %d", h);
+         sprintf(sBuffer, "houseIndex = %d", h);
          house["note"] = sBuffer;
 
          json::JSON& links = house["links"] = json::Array();

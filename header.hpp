@@ -75,6 +75,16 @@ struct DataWriter{
       byte* dest = this->bytes.data() + (this->bytes.size() - sizeof(T));
       *reinterpret_cast<T*>(dest) = t;
    }
+
+   template<typename T>
+   void writeAt(int offset, T t){
+      if(this->bytes.size() < offset + sizeof(T)){
+         this->bytes.resize(offset + sizeof(T));
+      }
+
+      byte* dest = this->bytes.data() + (this->bytes.size() - sizeof(T));
+      *reinterpret_cast<T*>(dest) = t;
+   }
 };
 
 // loadFfxFile.cpp
