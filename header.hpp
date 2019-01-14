@@ -68,6 +68,7 @@ struct DataReader{
 
 struct DataWriter{
    std::vector<byte> bytes;
+   int offsetFromMain = 0;
 
    template<typename T>
    void write(T t){
@@ -151,4 +152,6 @@ extern int jsonVersion; // :/
 void outputFfxAnalysis(std::wstring fileName);
 
 void ffxReadError(const std::wstring& path, const std::wstring& text);
+void ffxWriteError(const std::wstring& path, const std::wstring& text);
 void jsonReadError(const std::wstring& path, const std::wstring& text);
+void jsonWriteError(const std::wstring& path, const std::wstring& text);

@@ -86,10 +86,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             floats.append(dr.readFloat(offsetToFloats + n * 4));
             ints.append(dr.readInt(offsetToInts + n * 4));
          }
-
-         int size1 = floats.size();
-         int size2 = data3["floats"].size();
-         int size3 = data3["ints"].size();
       }else if(type == 89){
          int offsetToFloats = dr.readInt(addr + 4);
          int offsetToInts = dr.readInt(addr + 8);
@@ -824,6 +820,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
 
    std::string jsonText = root.dump(0, "   ");
    FILE* file = _wfopen(jsonPath.c_str(), L"w");
+   if(file == NULL) {
+      jsonWriteError(jsonPath, L"Cannot open file");
+      return;
+   }
    fwrite(jsonText.data(), 1, jsonText.size(), file);
    fclose(file);
 }

@@ -22,6 +22,12 @@ void ffxReadError(const std::wstring& path, const std::wstring& text){
    throw;
 }
 
+void ffxWriteError(const std::wstring& path, const std::wstring& text){
+   std::wstring errorMessage = L"Error writing ffx file '" + path + L"': " + text;
+   fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   throw;
+}
+
 void ffxAssumptionWrong(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"FFX assumption proved wrong for file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
@@ -36,6 +42,12 @@ void ffxResearchError(const std::wstring& path, const std::wstring& text){
 
 void jsonReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading json file '" + path + L"': " + text;
+   fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   throw;
+}
+
+void jsonWriteError(const std::wstring& path, const std::wstring& text){
+   std::wstring errorMessage = L"Error writing json file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
    throw;
 }
