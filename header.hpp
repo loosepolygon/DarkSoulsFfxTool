@@ -66,9 +66,26 @@ struct DataReader{
    }
 };
 
-struct DataWriter{
+class DataWriter{
+   struct OffsetToFix{
+      int writeOffsetHere;
+      DataWriter& dwSource;
+      int readThisOffset;
+
+      OffsetToFix(int b, DataWriter& c, int d) : 
+         writeOffsetHere(b),
+         dwSource(c),
+         readThisOffset(d)
+      {}
+   };
+
+   std::vector<OffsetToFix> offsetsToFix;
+
+public:
+
    std::vector<byte> bytes;
-   int offsetFromMain = 0;
+   int finalOffset = 0;
+   int padToMultiple = 0;
 
    template<typename T>
    void write(T t){
@@ -83,8 +100,46 @@ struct DataWriter{
          this->bytes.resize(offset + sizeof(T));
       }
 
-      byte* dest = this->bytes.data() + (this->bytes.size() - sizeof(T));
+      byte* dest = this->bytes.data() + offset;
       *reinterpret_cast<T*>(dest) = t;
+   }
+
+   void addOffsetToFixAt(int writeOffsetHere, DataWriter& otherDW, int offsetToWrite){
+      this->offsetsToFix.emplace_back(writeOffsetHere, otherDW, offsetToWrite);
+   }
+
+   void writeOffsetToFix(DataWriter& otherDW, int offsetToWrite){
+      this->addOffsetToFixAt(this->bytes.size(), otherDW, offsetToWrite);
+      this->write<int>(-1);
+   }
+
+   void merge(std::vector<DataWriter*> dataWriters, std::vector<int>& offsetList){
+      // Concat bytes
+      for(DataWriter* dw : dataWriters){
+         dw->finalOffset = this->bytes.size() + this->finalOffset;
+
+         this->bytes.insert(this->bytes.end(), dw->bytes.begin(), dw->bytes.end());
+
+         if(dw->padToMultiple != 0){
+            while(this->bytes.size() % dw->padToMultiple != 0){
+               this->write<byte>(0);
+            }
+         }
+      }
+
+      // Fix offsets
+      dataWriters.push_back(this);
+      for(DataWriter* dw : dataWriters){
+         for(OffsetToFix& offsetToFix : dw->offsetsToFix){
+            int writeOffsetHere = offsetToFix.writeOffsetHere + dw->finalOffset;
+            int readThisOffset = offsetToFix.readThisOffset + offsetToFix.dwSource.finalOffset;
+            this->writeAt<int>(writeOffsetHere, readThisOffset);
+
+            offsetList.push_back(writeOffsetHere);
+         }
+
+         dw->offsetsToFix.clear();
+      }
    }
 };
 
