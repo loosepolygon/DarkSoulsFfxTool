@@ -2185,6 +2185,8 @@ void loadEveryFfx(std::wstring dir){
    std::vector<Pond2*> allPond2s;
 
    for(const std::wstring& path : fileList){
+      if(path.empty()) break;
+
       Ffx ffx;
       std::vector<Pond3*> allPond3s;
 

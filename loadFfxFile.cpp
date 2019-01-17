@@ -881,6 +881,9 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          ffx.id = t133.ffxId;
          for(int n = 0; n < 7; ++n){
             t133.alwaysZero[n] = dr.readInt(addr + 8 + n * 4);
+            if(t133.alwaysZero[n] != 0){
+               ffxReadError(path, L"Type133 pre");
+            }
          }
          t133.always8Or10 = dr.readInt(addr + 9 * 4);
          t133.ast1 = readAST(addr + 10 * 4);
