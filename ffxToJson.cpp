@@ -62,7 +62,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          data3["unk1"] = dr.readInt(addr + 4);
          data3["unk2"] = dr.readInt(addr + 8);
          data3["unk3"] = dr.readInt(addr + 12);
-         data3["unk4"] = dr.readInt(addr + 16);
       }else if(type == 2){
          int offset = dr.readInt(addr + 4);
          int count = dr.readInt(addr + 8);
@@ -792,7 +791,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             int data3Offset = dr.readInt(linksOffset + l * 8 + 4);
 
             json::JSON entry = {
-               "houseIndex", (linkedHouseOffset - housesOffset) / (4 * 4),
+               "linkedHouseIndex", (linkedHouseOffset - housesOffset) / (4 * 4),
                "data3", readData3(data3Offset)
             };
 

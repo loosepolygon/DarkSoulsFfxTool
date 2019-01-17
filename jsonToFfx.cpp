@@ -73,7 +73,6 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.write<int>(data3["unk1"].ToInt());
          dw.write<int>(data3["unk2"].ToInt());
          dw.write<int>(data3["unk3"].ToInt());
-         dw.write<int>(data3["unk4"].ToInt());
       }else if(type == 2){
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
 
@@ -199,7 +198,6 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
             writeMainAST(mainASTIndex);
          }
-
       }else if(type == 45 || type == 47 || type == 87 || type == 114){
          dw.write<short>(data3["unk1"].ToInt());
          dw.write<short>(data3["unk2"].ToInt());
@@ -207,9 +205,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
          writeData3(nullptr, data3["data3"]);
       }else if(type == 120 || type == 121 || type == 122 || type == 123 || type == 124 || type == 126 || type == 127){
-         // :S
-
-         dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
+         dw.writeOffsetToFix(dw, dw.bytes.size() + 8);
          int offsetB = dw.bytes.size();
          dw.write<int>(-1);
          writeData3(nullptr, data3["data3A"]);
@@ -728,12 +724,14 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          json::JSON& house = houses[h];
          int currentHouseOffset = house["_offset"].ToInt();
 
-         for(json::JSON& link : house["links"].ArrayRange()){
-            int linkedHouseIndex = link["houseIndex"].ToInt();
-            int linkedHouseOffset = houses[linkedHouseIndex]["_offset"].ToInt();
-
-            // Fix the house's "links" offset
+         // Fix the house's "links" offset
+         if(house["links"].size() > 0){
             dwHouses.addOffsetToFixAt(currentHouseOffset, dwLinks, dwLinks.bytes.size());
+         }
+
+         for(json::JSON& link : house["links"].ArrayRange()){
+            int linkedHouseIndex = link["linkedHouseIndex"].ToInt();
+            int linkedHouseOffset = houses[linkedHouseIndex]["_offset"].ToInt();
 
             // Write link's house offset
             dwLinks.writeOffsetToFix(dwHouses, linkedHouseOffset);
@@ -762,11 +760,19 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
    // Write offsetList
    dwMain.writeAt<int>(12, dwMain.bytes.size());
-   dwMain.writeAt<int>(16, offsetList.size());
    std::sort(offsetList.begin(), offsetList.end());
+   // Make unique
+   for(int n = offsetList.size(); n --> 1;){
+      int offsetA = offsetList[n - 1];
+      int offsetB = offsetList[n - 0];
+      if(offsetA == offsetB){
+         offsetList.erase(offsetList.begin() + n);
+      }
+   }
    for(int offset : offsetList){
       dwMain.write<int>(offset);
    }
+   dwMain.writeAt<int>(16, offsetList.size());
 
    // Write data3Offsets
    dwMain.writeAt<int>(20, firstData3Offsets.size() + data3Offsets.size());

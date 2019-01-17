@@ -963,7 +963,6 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
          t.unk1 = dr.readInt(addr + 4);
          t.unk2 = dr.readInt(addr + 8);
          t.unk3 = dr.readInt(addr + 12);
-         t.unk4 = dr.readInt(addr + 16);
          data3.set(t);
       }else if(data3.type == 138){
          Type138 t;
