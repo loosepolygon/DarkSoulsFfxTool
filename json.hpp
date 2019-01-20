@@ -66,10 +66,9 @@ namespace {
 
           reValue = std::stof(buffer);
           if(reValue == floatValue){
-             while(buffer[buffer.size() - 1] == '0' && buffer[buffer.size() - 2] != '.'){
-              --textSize;  
+             while(buffer[textSize - 1] == '0' && buffer[textSize - 2] != '.'){
+                --textSize;
              };
-
              return std::move(buffer);
           }
        }
