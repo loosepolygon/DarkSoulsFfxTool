@@ -52,7 +52,13 @@ namespace {
        int textSize = snprintf(&buffer[0], buffer.size(), "%f", floatValue);
        buffer.resize(textSize);
        float reValue = std::stof(buffer);
+       if(reValue == floatValue){
+          return std::move(buffer);
+       }
 
+       textSize = snprintf(&buffer[0], buffer.size(), "%g", floatValue);
+       buffer.resize(textSize);
+       reValue = std::stof(buffer);
        if(reValue == floatValue){
           return std::move(buffer);
        }

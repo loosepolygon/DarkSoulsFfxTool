@@ -371,7 +371,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                dwSubtypeData->write<float>(subtype["unk1"].ToFloat());
                dwSubtypeData->write<float>(subtype["unk2"].ToFloat());
                dwSubtypeData->write<float>(subtype["unk3"].ToFloat());
-               dwSubtypeData->write<float>(subtype["unk4"].ToFloat());
+               dwSubtypeData->write<int>(subtype["preDataIndex"].ToInt());
             }else if(type == 28){
                // Empty
             }else{

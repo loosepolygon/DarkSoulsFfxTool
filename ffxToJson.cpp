@@ -438,7 +438,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                obj["unk1"] = drP.readFloat(offset + 0);
                obj["unk2"] = drP.readFloat(offset + 4);
                obj["unk3"] = drP.readFloat(offset + 8);
-               obj["unk4"] = drP.readFloat(offset + 12);
+               obj["preDataIndex"] = drP.readInt(offset + 12);
             }else if(subtype == 28){
                // Empty, offset is 0
             }else{
