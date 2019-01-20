@@ -1,4 +1,5 @@
 #include "header.hpp"
+#include "md5.hpp"
 
 bool hasErrored = false;
 
@@ -51,6 +52,33 @@ void jsonWriteError(const std::wstring& path, const std::wstring& text){
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
    throw;
 }
+
+
+std::string getMD5(const std::wstring& filePath){
+   std::vector<byte> bytes;
+   {
+      FILE* file = _wfopen(filePath.c_str(), L"rb");
+      if(file == NULL) {
+         ffxReadError(filePath, L"Cannot open file");
+         return "";
+      }
+
+      fseek(file, 0, SEEK_END);
+      long fileSize = ftell(file);
+      fseek(file, 0, SEEK_SET);
+
+      bytes.resize(fileSize);
+      fread(bytes.data(), 1, bytes.size(), file);
+
+      fclose(file);
+   }
+
+   MD5 md5;
+   md5.update(bytes.data(), bytes.size());
+   md5.finalize();
+   return std::move(md5.hexdigest());
+}
+
 
 //struct RawFfxFile{
 //   struct Header{
@@ -2297,6 +2325,46 @@ void importEveryFfx(std::wstring dir){
    }
 }
 
+void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::wstring ffxDir){
+   std::vector<std::wstring> fileList;
+   {
+      std::wstring fileListPath = originalDir + L"fileListFull.txt";
+      FILE* file = _wfopen(fileListPath.c_str(), L"r");
+
+      fseek(file, 0, SEEK_END);
+      long fileSize = ftell(file);
+      fseek(file, 0, SEEK_SET);
+
+      wchar_t endianness;
+      fread(&endianness, sizeof(wchar_t), 1, file);
+
+      std::wstring fullText;
+      fullText.resize(fileSize - sizeof(wchar_t));
+      fread(&fullText[0], sizeof(fullText[0]), fullText.size(), file);
+      fclose(file);
+
+      std::wstringstream ss(fullText);
+      std::wstring item;
+      while (std::getline(ss, item, L'\n')) {
+         if(item[0] != '\0'){
+            fileList.push_back(item);
+         }
+      }
+   }
+
+   for(const std::wstring& fileName : fileList){
+      jsonToFfx(jsonDir + fileName + L".json", ffxDir + fileName);
+
+      std::string md5Original = getMD5(originalDir + fileName);
+      std::string md5Rebuilt = getMD5(ffxDir + fileName);
+
+      if(md5Original != md5Rebuilt){
+         outputFfxAnalysis(originalDir + fileName, true);
+      }
+   }
+}
+
+
 int main(int argCount, char** args) {
    printf("Hello\n");
 
@@ -2330,26 +2398,29 @@ int main(int argCount, char** args) {
    //loadFfxFile(ffx, L"DSR_f0000881.ffx");
 
 
-   for(int ffxId : {459}){
-      wchar_t wBuffer[250];
-      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
-      std::wstring ffxPath = wBuffer;
-      swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
-      std::wstring jsonPath = wBuffer;
-      ffxToJson(ffxPath, jsonPath);
-   }
+   //for(int ffxId : {459}){
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
+   //   std::wstring ffxPath = wBuffer;
+   //   swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
+   //   std::wstring jsonPath = wBuffer;
+   //   ffxToJson(ffxPath, jsonPath);
+   //}
 
    //importEveryFfx(dir);
 
 
-   for(int ffxId : {459}){
-      wchar_t wBuffer[250];
-      swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
-      std::wstring jsonPath = wBuffer;
-      swprintf(wBuffer, sizeof(wBuffer), L"rebuilt/f%07d.ffx", ffxId);
-      std::wstring ffxPath = wBuffer;
-      jsonToFfx(jsonPath, ffxPath);
-   }
+   //for(int ffxId : {190000300}){
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
+   //   std::wstring jsonPath = wBuffer;
+   //   swprintf(wBuffer, sizeof(wBuffer), L"rebuilt/f%07d.ffx", ffxId);
+   //   std::wstring ffxPath = wBuffer;
+   //   jsonToFfx(jsonPath, ffxPath);
+   //}
+
+   exportEveryFfxAndTest(dir, L"json/", L"rebuilt/");
+
 
    system("pause");
 }
