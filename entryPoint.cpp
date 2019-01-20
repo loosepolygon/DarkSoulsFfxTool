@@ -1505,9 +1505,9 @@ struct SAStruct{
    }
 };
 
-void outputFfxAnalysis(std::wstring fileName){
+void outputFfxAnalysis(std::wstring fileName, bool rawPath){
    std::wstring path;
-   if(fileName[1] == L':'){
+   if(fileName[1] == L':' || rawPath){
       path = fileName;
    }else{
       path += L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
@@ -2308,7 +2308,7 @@ int main(int argCount, char** args) {
    //testEveryFfx(L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/");
 
 
-   //outputFfxAnalysis(L"f0002125.ffx");
+   //outputFfxAnalysis(L"f0000459.ffx", false);
    //outputFfxAnalysis(L"f0000482.ffx");
    //outputFfxAnalysis(L"f0000511.ffx");
    //outputFfxAnalysis(L"f0002023.ffx");
@@ -2323,26 +2323,26 @@ int main(int argCount, char** args) {
    //   loadFfxFile(ffx, wBuffer);
    //}
 
-   //loadFfxFile(ffx, dir + L"f0000511.ffx");
+   //loadFfxFile(ffx, L"rebuilt/f0000459.ffx");
 
    //loadEveryFfx(dir);
 
    //loadFfxFile(ffx, L"DSR_f0000881.ffx");
 
 
-   //for(int ffxId : {13520}){
-   //   wchar_t wBuffer[250];
-   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
-   //   std::wstring ffxPath = wBuffer;
-   //   swprintf(wBuffer, sizeof(wBuffer), L"f%07d.ffx.json", ffxId);
-   //   std::wstring jsonPath = wBuffer;
-   //   ffxToJson(ffxPath, jsonPath);
-   //}
+   for(int ffxId : {459}){
+      wchar_t wBuffer[250];
+      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", dir.c_str(), ffxId);
+      std::wstring ffxPath = wBuffer;
+      swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
+      std::wstring jsonPath = wBuffer;
+      ffxToJson(ffxPath, jsonPath);
+   }
 
    //importEveryFfx(dir);
 
 
-   for(int ffxId : {13520}){
+   for(int ffxId : {459}){
       wchar_t wBuffer[250];
       swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
       std::wstring jsonPath = wBuffer;

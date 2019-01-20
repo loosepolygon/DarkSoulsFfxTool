@@ -204,7 +204,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 extern FILE* currentGlobalFile;
 extern int jsonVersion; // :/
 
-void outputFfxAnalysis(std::wstring fileName);
+void outputFfxAnalysis(std::wstring fileName, bool rawPath = false);
 
 void ffxReadError(const std::wstring& path, const std::wstring& text);
 void ffxWriteError(const std::wstring& path, const std::wstring& text);

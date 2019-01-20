@@ -1460,7 +1460,9 @@ void loadFfxFile(Ffx& ffx, std::wstring path, std::set<int>* allPond2Types, std:
 
       if(pond3Offset){
          Pond3* pond3 = new Pond3;
-         allPond3s->push_back(pond3);
+         if(allPond3s){
+            allPond3s->push_back(pond3);
+         }
 
          pond3->address = pond3Offset;
          pond3->data.type = dr.readInt(pond3Offset + 0);

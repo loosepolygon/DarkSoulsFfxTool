@@ -271,8 +271,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                pond3["unk6"] = dr.readInt(pond3Offset + 24);
                pond3["unk7"] = dr.readInt(pond3Offset + 28);
                pond3["unk8"] = dr.readInt(pond3Offset + 32);
-               pond3["unk9"] = dr.readInt(pond3Offset + 36);
-               pond3["unk10"] = dr.readInt(pond3Offset + 40);
+               pond3["unk9"] = dr.readFloat(pond3Offset + 36);
+               pond3["unk10"] = dr.readFloat(pond3Offset + 40);
                pond3["unk11"] = dr.readFloat(pond3Offset + 44);
             }else if(type == 2){
                pond3["unk1"] = dr.readFloat(pond3Offset + 4);
@@ -764,8 +764,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
       root["ffxId"] = dr.readInt(addr + 4);
 
       json::JSON t133 = json::Object();
+      sprintf(sBuffer, "Type133 index = %d", n);
+      t133["note"] = sBuffer;
       t133["always8Or10"] = dr.readInt(addr + 9 * 4);
-
       t133["preAST1"] = {};
       t133["preAST2"] = {};
       readAST(addr + 10 * 4, &(t133["preAST1"]));

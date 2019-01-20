@@ -30,6 +30,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    DataWriter dwBlossoms;
    DataWriter dwSubDataAndPond3s;
    DataWriter dwData3s;
+   DataWriter dwLinkData3s;
    std::vector<DataWriter*> dwPond1Arrays;
    DataWriter dwType1Pond3s;
    std::vector<DataWriter*> dwPond2Stuff;
@@ -37,17 +38,20 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    std::vector<int> offsetList;
    std::vector<int> firstData3Offsets; // Types 133 and 134
    std::vector<int> data3Offsets;
+   std::vector<int> linkData3Offsets;
 
    //char sBuffer[200];
    wchar_t wBuffer[200];
 
-   std::function<void(DataWriter*, json::JSON&)> writeData3;
+   std::function<void(DataWriter&, DataWriter*, json::JSON&)> writeData3;
    std::function<void(int)> writeMainAST;
 
-   writeData3 = [&](DataWriter* dwPond1Array, json::JSON& data3) -> void{
-      DataWriter& dw = dwData3s;
-
-      data3Offsets.push_back(dw.bytes.size());
+   writeData3 = [&](DataWriter& dw, DataWriter* dwPond1Array, json::JSON& data3) -> void{
+      if(&dw == &dwLinkData3s){
+         linkData3Offsets.push_back(dwLinkData3s.bytes.size());
+      }else{
+         data3Offsets.push_back(dw.bytes.size());
+      }
 
       int type = data3["data3Type"].ToInt();
 
@@ -132,7 +136,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dw.write<int>(data3["unk1"].ToInt());
 
             dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
-            writeData3(nullptr, data3["data3"]);
+            writeData3(dw, nullptr, data3["data3"]);
          }
       }else if(type == 13 || type == 14){
          int floatCountA = data3["floatsA"].size();
@@ -203,15 +207,15 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.write<short>(data3["unk2"].ToInt());
       }else if(type == 128){
          dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
-         writeData3(nullptr, data3["data3"]);
+         writeData3(dw, nullptr, data3["data3"]);
       }else if(type == 120 || type == 121 || type == 122 || type == 123 || type == 124 || type == 126 || type == 127){
          dw.writeOffsetToFix(dw, dw.bytes.size() + 8);
          int offsetB = dw.bytes.size();
          dw.write<int>(-1);
-         writeData3(nullptr, data3["data3A"]);
+         writeData3(dw, nullptr, data3["data3A"]);
 
          dw.addOffsetToFixAt(offsetB, dw, dw.bytes.size());
-         writeData3(nullptr, data3["data3B"]);
+         writeData3(dw, nullptr, data3["data3B"]);
       }else{
          swprintf(wBuffer, sizeof(wBuffer), L"Data3 type %d unfamiliar", type);
          jsonReadError(ffxPath, wBuffer);
@@ -245,7 +249,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          for(int d = 0; d < data3Count; ++d){
             json::JSON& data3 = ast["pond1Data3s"][d];
-            writeData3(dwPond1Array, data3);
+            writeData3(dwData3s, dwPond1Array, data3);
          }
 
          json::JSON& pond3 = ast["pond3"];
@@ -272,8 +276,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                dwType1Pond3s.write<int>(pond3["unk6"].ToInt());
                dwType1Pond3s.write<int>(pond3["unk7"].ToInt());
                dwType1Pond3s.write<int>(pond3["unk8"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk9"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk10"].ToInt());
+               dwType1Pond3s.write<float>(pond3["unk9"].ToFloat());
+               dwType1Pond3s.write<float>(pond3["unk10"].ToFloat());
                dwType1Pond3s.write<float>(pond3["unk11"].ToFloat());
             }else if(type == 2){
                dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
@@ -664,19 +668,30 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    dwMain.write<int>(root["unk1"].ToInt());
    dwMain.write<int>(root["unk2"].ToInt());
 
-   bool needsType134 = root["type133s"].size() > 1;
+   int t133Count = root["type133s"].size();
+   bool needsType134 = t133Count > 1;
    if(needsType134){
-      // TODO
-      return;
-
-      dwMain.write<int>(134);
-      for(json::JSON& type133 : root["type133s"].ArrayRange()){
-
-      }
-   }else{
       firstData3Offsets.push_back(dwMain.bytes.size());
 
-      json::JSON& type133 = root["type133s"][0];
+      dwMain.write<int>(134);
+      dwMain.write<int>(root["ffxId"].ToInt());
+      dwMain.write<int>(0);
+
+      DataWriter* dwType133OffsetArray = new DataWriter;
+      dwPond1Arrays.emplace_back(dwType133OffsetArray);
+
+      dwMain.writeOffsetToFix(*dwType133OffsetArray, 0);
+      dwMain.write<int>(t133Count);
+
+      for(int n = 0; n < t133Count; ++n){
+         int t133Offset = dwMain.bytes.size() + 96 * n;
+         dwType133OffsetArray->writeOffsetToFix(dwMain, t133Offset);
+      }
+   }
+   
+   for(json::JSON& type133 : root["type133s"].ArrayRange()){
+      firstData3Offsets.push_back(dwMain.bytes.size());
+
       dwMain.write<int>(133);
       dwMain.write<int>(root["ffxId"].ToInt());
       for(int n = 0; n < 7; ++n){
@@ -687,7 +702,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       json::JSON& preAST2 = type133["preAST2"];
       writeAST(dwMain, preAST1);
       writeAST(dwMain, preAST2);
-      dwMain.writeOffsetToFix(dwHouses, 0);
+      dwMain.writeOffsetToFix(dwHouses, dwHouses.bytes.size());
       dwMain.write<int>(type133["houses"].size());
 
       json::JSON& houses = type133["houses"];
@@ -737,8 +752,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dwLinks.writeOffsetToFix(dwHouses, linkedHouseOffset);
 
             // Write link's data3
-            dwLinks.writeOffsetToFix(dwData3s, dwData3s.bytes.size());
-            writeData3(nullptr, link["data3"]);
+            dwLinks.writeOffsetToFix(dwLinkData3s, dwLinkData3s.bytes.size());
+            writeData3(dwLinkData3s, nullptr, link["data3"]);
          }
       }
    }
@@ -752,9 +767,10 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       &dwBlossoms,
       &dwSubDataAndPond3s,
       &dwData3s,
+      &dwLinkData3s,
       &dwType1Pond3s
    };
-   dataWriters.insert(dataWriters.begin() + 6, dwPond1Arrays.begin(), dwPond1Arrays.end());
+   dataWriters.insert(dataWriters.begin() + 7, dwPond1Arrays.begin(), dwPond1Arrays.end());
    dataWriters.insert(dataWriters.end() - 0, dwPond2Stuff.begin(), dwPond2Stuff.end());
    dwMain.merge(dataWriters, offsetList);
 
@@ -775,7 +791,6 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    dwMain.writeAt<int>(16, offsetList.size());
 
    // Write data3Offsets
-   dwMain.writeAt<int>(20, firstData3Offsets.size() + data3Offsets.size());
    for(int offset : firstData3Offsets){
       dwMain.write<int>(offset);
    }
@@ -783,6 +798,10 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    for(int offset : data3Offsets){
       dwMain.write<int>(dwData3s.finalOffset + offset);
    }
+   for(int offset : linkData3Offsets){
+      dwMain.write<int>(dwLinkData3s.finalOffset + offset);
+   }
+   dwMain.writeAt<int>(20, firstData3Offsets.size() + data3Offsets.size() + linkData3Offsets.size());
 
    // Cleanup
    for(DataWriter* dw : dwPond1Arrays){

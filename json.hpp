@@ -40,6 +40,42 @@ namespace {
             }
         return std::move( output );
     }
+
+    std::string floatToString(float floatValue){
+       if(*((int*)&floatValue) == 0){
+          return "0.0";
+       }
+
+       std::string buffer;
+       buffer.resize(80);
+
+       int textSize = snprintf(&buffer[0], buffer.size(), "%f", floatValue);
+       buffer.resize(textSize);
+       float reValue = std::stof(buffer);
+
+       if(reValue == floatValue){
+          return std::move(buffer);
+       }
+
+       for(int n = 0; n < 6; ++n){
+          char format[16];
+          snprintf(format, sizeof(format), "%%.%df", 10 + 5 * n);
+          buffer.resize(80);
+          textSize = snprintf(&buffer[0], buffer.size(), format, floatValue);
+          buffer.resize(textSize);
+
+          reValue = std::stof(buffer);
+          if(reValue == floatValue){
+             while(buffer[buffer.size() - 1] == '0' && buffer[buffer.size() - 2] != '.'){
+              --textSize;  
+             };
+
+             return std::move(buffer);
+          }
+       }
+
+       throw;
+    }
 }
 
 class JSON
@@ -446,10 +482,7 @@ class JSON
                 case Class::String:
                     return "\"" + json_escape( *Internal.String ) + "\"";
                 case Class::Floating:
-                    // return std::to_string( Internal.Float );
-                   char buffer[32];
-                   snprintf(buffer, 32, "%.10f", Internal.Float);
-                   return buffer;
+                   return std::move(floatToString(Internal.Float));
                 case Class::Integral:
                     return std::to_string( Internal.Int );
                 case Class::Boolean:
