@@ -69,12 +69,12 @@ struct DataReader{
 class DataWriter{
    struct OffsetToFix{
       int writeOffsetHere;
-      DataWriter& dwSource;
+      DataWriter* dwSource;
       int readThisOffset;
 
       OffsetToFix(int b, DataWriter& c, int d) : 
          writeOffsetHere(b),
-         dwSource(c),
+         dwSource(&c),
          readThisOffset(d)
       {}
    };
@@ -104,6 +104,11 @@ public:
       *reinterpret_cast<T*>(dest) = t;
    }
 
+   template<typename T>
+   T read(int offset){
+      return *reinterpret_cast<T*>(&this->bytes[offset]);
+   }
+
    void addOffsetToFixAt(int writeOffsetHere, DataWriter& otherDW, int offsetToWrite){
       this->offsetsToFix.emplace_back(writeOffsetHere, otherDW, offsetToWrite);
    }
@@ -111,6 +116,19 @@ public:
    void writeOffsetToFix(DataWriter& otherDW, int offsetToWrite){
       this->addOffsetToFixAt(this->bytes.size(), otherDW, offsetToWrite);
       this->write<int>(-1);
+   }
+
+   void replaceOffsetToFix(int writeOffsetHere, DataWriter& otherDW, int offsetToWrite){
+      for(auto& offsetToFix : this->offsetsToFix){
+         if(offsetToFix.writeOffsetHere == writeOffsetHere){
+            offsetToFix.dwSource = &otherDW;
+            offsetToFix.readThisOffset = offsetToWrite;
+
+            return;
+         }
+      }
+
+      throw;
    }
 
    void merge(std::vector<DataWriter*> dataWriters, std::vector<int>& offsetList){
@@ -132,7 +150,7 @@ public:
       for(DataWriter* dw : dataWriters){
          for(OffsetToFix& offsetToFix : dw->offsetsToFix){
             int writeOffsetHere = offsetToFix.writeOffsetHere + dw->finalOffset;
-            int readThisOffset = offsetToFix.readThisOffset + offsetToFix.dwSource.finalOffset;
+            int readThisOffset = offsetToFix.readThisOffset + offsetToFix.dwSource->finalOffset;
             this->writeAt<int>(writeOffsetHere, readThisOffset);
 
             offsetList.push_back(writeOffsetHere);

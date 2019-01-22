@@ -408,6 +408,45 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                writeSubtype(*dwPond2, vars[varIndex++]);
             }
          };
+         auto writeSubtypesWithDataOrder = [&](std::vector<int> subtypeOrder) -> void{
+            // subtypeOrder index: subtype *data* order
+            // subtypeOrder value: subtype index
+
+            int pond2OldSize = dwPond2->bytes.size();
+            int subtypeDataOldSize = dwSubtypeData->bytes.size();
+
+            std::vector<std::pair<int, int>> subtypeDataSlices;
+            for(size_t n = 0; n < subtypeOrder.size(); ++n){
+               int oldSize = dwSubtypeData->bytes.size();
+               writeSubtype(*dwPond2, vars[varIndex++]);
+               subtypeDataSlices.emplace_back(
+                  oldSize - subtypeDataOldSize,
+                  dwSubtypeData->bytes.size() - subtypeDataOldSize
+               );
+            }
+
+            std::vector<byte> subtypeDataCopy(
+               dwSubtypeData->bytes.begin() + subtypeDataOldSize,
+               dwSubtypeData->bytes.end()
+            );
+            dwSubtypeData->bytes.resize(subtypeDataOldSize);
+            
+            for(size_t subtypeDataIndex = 0; subtypeDataIndex < subtypeOrder.size(); ++subtypeDataIndex){
+               int subtypeIndex = subtypeOrder[subtypeDataIndex];
+
+               int subtypeOffset = pond2OldSize + subtypeIndex * sizeof(int) * 2;
+               int type = dwPond2->read<int>(subtypeOffset + 0);
+
+               if(type != 28){
+                  dwPond2->replaceOffsetToFix(subtypeOffset + 4, *dwSubtypeData, dwSubtypeData->bytes.size());
+                  dwSubtypeData->bytes.insert(
+                     dwSubtypeData->bytes.end(),
+                     subtypeDataCopy.begin() + subtypeDataSlices[subtypeIndex].first,
+                     subtypeDataCopy.begin() + subtypeDataSlices[subtypeIndex].second
+                  );
+               }
+            }
+         };
 
          if(pond2Type == 27){
             writeFloat();
@@ -475,7 +514,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeInt();
             writeInt();
-            writeSubtypes(13);
+            writeSubtypes(7);
+            writeSubtypesWithDataOrder({2, 3, 4, 5, 0, 1});
             writeInt();
          }else if(pond2Type == 55){
             writeSubtypes(3);
@@ -541,7 +581,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeInt();
             writeInt();
-            writeSubtypes(30);
+            writeSubtypes(10);
+            writeSubtypesWithDataOrder({
+               12, 13, 14, 15, 16, 17, 18, 19,
+               0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+            });
             writeInt();
             writeZero();
             writeZero();
