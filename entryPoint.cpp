@@ -2213,7 +2213,7 @@ void loadEveryFfx(std::wstring dir){
    std::vector<Pond2*> allPond2s;
 
    for(const std::wstring& path : fileList){
-      if(path.empty()) break;
+      if(path.empty() || path[0] == '\0') break;
 
       Ffx ffx;
       std::vector<Pond3*> allPond3s;
@@ -2242,51 +2242,51 @@ void loadEveryFfx(std::wstring dir){
    }
 
    // Output pond2 types analysis
-   //std::vector<int> allPond2TypesArray;
-   //for(int type : allPond2Types){
-   //   allPond2TypesArray.push_back(type);
-   //}
-   //std::sort(allPond2TypesArray.begin(), allPond2TypesArray.end());
-   //printf("All Pond2 types:\n");
-   //for(int type : allPond2TypesArray){
-   //   printf("%d\n", type);
-   //}
+   std::vector<int> allPond2TypesArray;
+   for(int type : allPond2Types){
+      allPond2TypesArray.push_back(type);
+   }
+   std::sort(allPond2TypesArray.begin(), allPond2TypesArray.end());
+   printf("All Pond2 types:\n");
+   for(int type : allPond2TypesArray){
+      printf("%d\n", type);
+   }
 
    // Output pond2 specific type analysis
-   //int researchingType = 107;
-   //char sBuffer[200];
-   //std::string outputText;
-   //for(Pond2* pond2 : allPond2s){
-   //   if(pond2->type == researchingType && pond2->preDataCount == 0){
-   //      sprintf(sBuffer, "\n---------------- pond2 type %d ----------------\n", pond2->type);
-   //      outputText += sBuffer;
+   int researchingType = 71;
+   char sBuffer[200];
+   std::string outputText;
+   for(Pond2* pond2 : allPond2s){
+      if(pond2->type == researchingType && pond2->preDataCount == 0){
+         sprintf(sBuffer, "\n---------------- pond2 type %d ----------------\n", pond2->type);
+         outputText += sBuffer;
 
-   //      int* ip = (int*)pond2->data.data();
-   //      float* fp = (float*)ip;
-   //      int address = pond2->address + 6 * 4;
-   //      for(size_t n = 0; n < pond2->data.size(); ++n){
-   //         float floatAbsValue = fabs(fp[n]);
-   //         if(ip[n] == 0){
-   //            sprintf(sBuffer, "%6d 0\n", address);
-   //         }else if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f || ip[n] == -2147483647 - 1){
-   //            sprintf(sBuffer, "%6d float %f\n", address, fp[n]);
-   //         }else{
-   //            sprintf(sBuffer, "%6d int %d\n", address, ip[n]);
-   //         }
-   //         outputText += sBuffer;
+         int* ip = (int*)pond2->data.data();
+         float* fp = (float*)ip;
+         int address = pond2->address + 6 * 4;
+         for(size_t n = 0; n < pond2->data.size()/4; ++n){
+            float floatAbsValue = fabs(fp[n]);
+            if(ip[n] == 0){
+               sprintf(sBuffer, "%3d - %6d 0\n", n, address);
+            }else if(floatAbsValue > 0.001 && floatAbsValue < 100000.0f || ip[n] == -2147483647 - 1){
+               sprintf(sBuffer, "%3d - %6d float %f\n", n, address, fp[n]);
+            }else{
+               sprintf(sBuffer, "%3d - %6d int %d\n", n, address, ip[n]);
+            }
+            outputText += sBuffer;
 
-   //         address += 4;
-   //      }
+            address += 4;
+         }
 
-   //      outputText += "\n\n";
-   //   }
-   //}
+         outputText += "\n\n";
+      }
+   }
 
-   //char outputPath[80];
-   //sprintf(outputPath, "P2T%03d.txt", researchingType);
-   //FILE* file = fopen(outputPath, "w");
-   //fwrite(outputText.data(), 1, outputText.size(), file);
-   //fclose(file);
+   char outputPath[80];
+   sprintf(outputPath, "P2T%03d.txt", researchingType);
+   FILE* file = fopen(outputPath, "w");
+   fwrite(outputText.data(), 1, outputText.size(), file);
+   fclose(file);
 
    int bp=42;
 }
@@ -2353,6 +2353,8 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
    }
 
    for(const std::wstring& fileName : fileList){
+      wprintf(L"%s\n", fileName.c_str());
+
       jsonToFfx(jsonDir + fileName + L".json", ffxDir + fileName);
 
       std::string md5Original = getMD5(originalDir + fileName);
@@ -2360,6 +2362,7 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
 
       if(md5Original != md5Rebuilt){
          outputFfxAnalysis(originalDir + fileName, true);
+         throw;
       }
    }
 }
@@ -2410,7 +2413,7 @@ int main(int argCount, char** args) {
    //importEveryFfx(dir);
 
 
-   //for(int ffxId : {190000300}){
+   //for(int ffxId : {2125}){
    //   wchar_t wBuffer[250];
    //   swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
    //   std::wstring jsonPath = wBuffer;

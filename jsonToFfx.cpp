@@ -32,7 +32,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    DataWriter dwData3s;
    DataWriter dwLinkData3s;
    std::vector<DataWriter*> dwPond1Arrays;
-   DataWriter dwType1Pond3s;
+   DataWriter dwType1Pond3AndSomeSubdata;
    std::vector<DataWriter*> dwPond2Stuff;
 
    std::vector<int> offsetList;
@@ -81,7 +81,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
 
          int count = data3["bunchaInts"].size();
-         dw.write<int>(data3["unk1"].ToInt());
+         dw.write<int>(count);
 
          for(json::JSON& value : data3["bunchaInts"].ArrayRange()){
             dwSubDataAndPond3s.write<int>(value.ToInt());
@@ -170,9 +170,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dwSubDataAndPond3s.write<float>(value.ToFloat());
          }
 
-         dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
+         dw.writeOffsetToFix(dwType1Pond3AndSomeSubdata, dwType1Pond3AndSomeSubdata.bytes.size());
          for(json::JSON& value : data3["floatsB"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwType1Pond3AndSomeSubdata.write<float>(value.ToFloat());
          }
 
          dw.write<int>(floatCountA);
@@ -258,8 +258,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             int type = pond3["pond3Type"].ToInt();
 
             if(type == 1){
-               dw.addOffsetToFixAt(astOffset + 20, dwType1Pond3s, dwType1Pond3s.bytes.size());
-               dwType1Pond3s.write<int>(type);
+               dw.addOffsetToFixAt(astOffset + 20, dwType1Pond3AndSomeSubdata, dwType1Pond3AndSomeSubdata.bytes.size());
+               dwType1Pond3AndSomeSubdata.write<int>(type);
             }else{
                dw.addOffsetToFixAt(astOffset + 20, dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
                dwSubDataAndPond3s.write<int>(type);
@@ -268,17 +268,17 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             if(type == 0){
                dwSubDataAndPond3s.write<int>(pond3["unk1"].ToInt());
             }else if(type == 1){
-               dwType1Pond3s.write<int>(pond3["unk1"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk2"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk3"].ToInt());
-               dwType1Pond3s.write<float>(pond3["unk4"].ToFloat());
-               dwType1Pond3s.write<float>(pond3["unk5"].ToFloat());
-               dwType1Pond3s.write<int>(pond3["unk6"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk7"].ToInt());
-               dwType1Pond3s.write<int>(pond3["unk8"].ToInt());
-               dwType1Pond3s.write<float>(pond3["unk9"].ToFloat());
-               dwType1Pond3s.write<float>(pond3["unk10"].ToFloat());
-               dwType1Pond3s.write<float>(pond3["unk11"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk1"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk2"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk3"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk4"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk5"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk6"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk7"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk8"].ToInt());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk9"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk10"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk11"].ToFloat());
             }else if(type == 2){
                dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
                dwSubDataAndPond3s.write<float>(pond3["unk2"].ToFloat());
@@ -514,8 +514,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeInt();
             writeInt();
-            writeSubtypes(7);
-            writeSubtypesWithDataOrder({2, 3, 4, 5, 0, 1});
+            writeSubtypesWithDataOrder({0, 1, 2, 3, 6, 9, 10, 11, 12, 7, 8, 4, 5});
             writeInt();
          }else if(pond2Type == 55){
             writeSubtypes(3);
@@ -612,7 +611,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeSubtypes(10);
             writeInt();
             writeInt();
-            writeSubtypes(10);
+            writeSubtypesWithDataOrder({2, 3, 4, 5, 6, 7, 8, 9, 0, 1});
             writeInt();
             writeZero();
             writeZero();
@@ -803,7 +802,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    }
 
    // Merge DataWriters
-   dwPond1Arrays.back()->padToMultiple = 16;
+   if(!dwPond1Arrays.empty()){
+      dwPond1Arrays.back()->padToMultiple = 16;
+   }
    std::vector<DataWriter*> dataWriters = {
       &dwMainASTs,
       &dwHouses,
@@ -812,10 +813,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       &dwSubDataAndPond3s,
       &dwData3s,
       &dwLinkData3s,
-      &dwType1Pond3s
+      &dwType1Pond3AndSomeSubdata
    };
    dataWriters.insert(dataWriters.begin() + 7, dwPond1Arrays.begin(), dwPond1Arrays.end());
    dataWriters.insert(dataWriters.end() - 0, dwPond2Stuff.begin(), dwPond2Stuff.end());
+   dataWriters.back()->padToMultiple = 16;
    dwMain.merge(dataWriters, offsetList);
 
    // Write offsetList
