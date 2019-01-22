@@ -40,7 +40,6 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    std::vector<int> data3Offsets;
    std::vector<int> linkData3Offsets;
 
-   //char sBuffer[200];
    wchar_t wBuffer[200];
 
    std::function<void(DataWriter&, DataWriter*, json::JSON&)> writeData3;
@@ -97,8 +96,6 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floats"].ArrayRange()){
             dwSubDataAndPond3s.write<float>(value.ToFloat());
-            float v = value.ToFloat();
-            int bp=42;
          }
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());

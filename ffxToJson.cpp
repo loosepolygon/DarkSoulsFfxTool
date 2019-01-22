@@ -5,7 +5,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    DataReader dr;
    {
       FILE* file = _wfopen(ffxPath.c_str(), L"rb");
-      currentGlobalFile = file;
       if(file == NULL) {
          ffxReadError(ffxPath, L"Cannot open file");
          return;
@@ -725,10 +724,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
    int versionRaw = dr.readInt(4);
    int version = (int)((short*)(&versionRaw))[1];
    int dataStartAfterHeader = dr.readInt(8);
-   //int data2Start = dr.readInt(12);
-   //int data2Count = dr.readInt(16);
-   //int data3Start = data2Start + data2Count * 4;
-   //int data3Count = dr.readInt(20);
    int unk1 = dr.readInt(24);
    int unk2 = dr.readInt(28);
 
