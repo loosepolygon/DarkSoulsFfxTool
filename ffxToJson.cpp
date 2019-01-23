@@ -686,7 +686,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readFloat();
             readInt();
             readFloat();
-            readInt("ffxId");
+            readInt("modelId");
             readInt();
             readInt();
             readInt();
