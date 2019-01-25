@@ -214,5 +214,5 @@ int wmain(int argCount, wchar_t** args) {
    }
    wprintf_s(L"Done.\n");
 
-   system("pause");
+   //system("pause");
 }
