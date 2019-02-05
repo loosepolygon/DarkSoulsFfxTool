@@ -263,13 +263,13 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             }
 
             if(type == 0){
-               dwSubDataAndPond3s.write<int>(pond3["unk1"].ToInt());
+               dwSubDataAndPond3s.write<int>(pond3["astCount"].ToInt());
             }else if(type == 1){
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk1"].ToInt());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk2"].ToInt());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk3"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk4"].ToFloat());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk5"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["offsetX"].ToFloat());
+               dwType1Pond3AndSomeSubdata.write<float>(pond3["offsetY"].ToFloat());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk6"].ToInt());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk7"].ToInt());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk8"].ToInt());
@@ -277,7 +277,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                dwType1Pond3AndSomeSubdata.write<float>(pond3["unk10"].ToFloat());
                dwType1Pond3AndSomeSubdata.write<float>(pond3["unk11"].ToFloat());
             }else if(type == 2){
-               dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
+               dwSubDataAndPond3s.write<float>(pond3["lifetime"].ToFloat());
                dwSubDataAndPond3s.write<float>(pond3["unk2"].ToFloat());
                dwSubDataAndPond3s.write<int>(pond3["unk3"].ToInt());
                dwSubDataAndPond3s.write<float>(pond3["unk4"].ToFloat());

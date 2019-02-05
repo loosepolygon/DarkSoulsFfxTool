@@ -260,13 +260,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             int type = dr.readInt(pond3Offset + 0);
             pond3["pond3Type"] = type;
             if(type == 0){
-               pond3["unk1"] = dr.readInt(pond3Offset + 4);
+               pond3["astCount"] = dr.readInt(pond3Offset + 4);
             }else if(type == 1){
                pond3["unk1"] = dr.readInt(pond3Offset + 4);
                pond3["unk2"] = dr.readInt(pond3Offset + 8);
                pond3["unk3"] = dr.readInt(pond3Offset + 12);
-               pond3["unk4"] = dr.readFloat(pond3Offset + 16);
-               pond3["unk5"] = dr.readFloat(pond3Offset + 20);
+               pond3["offsetX"] = dr.readFloat(pond3Offset + 16);
+               pond3["offsetY"] = dr.readFloat(pond3Offset + 20);
                pond3["unk6"] = dr.readInt(pond3Offset + 24);
                pond3["unk7"] = dr.readInt(pond3Offset + 28);
                pond3["unk8"] = dr.readInt(pond3Offset + 32);
@@ -274,7 +274,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                pond3["unk10"] = dr.readFloat(pond3Offset + 40);
                pond3["unk11"] = dr.readFloat(pond3Offset + 44);
             }else if(type == 2){
-               pond3["unk1"] = dr.readFloat(pond3Offset + 4);
+               pond3["lifetime"] = dr.readFloat(pond3Offset + 4);
                pond3["unk2"] = dr.readFloat(pond3Offset + 8);
                pond3["unk3"] = dr.readInt(pond3Offset + 12);
                pond3["unk4"] = dr.readFloat(pond3Offset + 16);
@@ -519,7 +519,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readInt();
             readInt();
          }else if(type == 32){
-            readSubtypes(6);
+            readSubtype("offsetX");
+            readSubtype("offsetY");
+            readSubtype("offsetZ");
+            readSubtype("offsetPitch");
+            readSubtype("offsetYaw");
+            readSubtype("offsetRoll");
             readInt();
             readInt();
          }else if(type == 40){
@@ -691,7 +696,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readInt();
             readInt();
             readZero();
-            readSubtypes(12);
+            readSubtype("scaleData1X");
+            readSubtype("scaleData1Y");
+            readSubtype("scaleData1Z");
+            readSubtype("scaleData2X");
+            readSubtype("scaleData2Y");
+            readSubtype("scaleData2Z");
+            readSubtype("pitchSpeed");
+            readSubtype("yawSpeed");
+            readSubtype("rollSpeed");
+            readSubtypes(3);
             readInt();
             readInt();
             readSubtypes(14);
