@@ -373,13 +373,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                }
             }else if(subtype == 5){
                obj["note"] = "Multiple of 2";
+               obj["range"] = json::Array();
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
                for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
 
-               obj["range"] = json::Array();
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
             }else if(subtype == 6){
@@ -393,12 +393,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2) * 4);
             }else if(subtype == 7){
                obj["note"] = "Multiple of 2";
+               obj["range"] = json::Array();
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
                for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
-               obj["range"] = json::Array();
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
 
@@ -412,13 +412,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                }
             }else if(subtype == 9){
                obj["note"] = "Multiple of 4";
+               obj["range"] = json::Array();
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
                for(int n = 0; n < floatCount * 4; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
 
-               obj["range"] = json::Array();
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 0));
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 4));
             }else if(subtype == 12){
@@ -437,13 +437,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                }
             }else if(subtype == 17){
                obj["note"] = "Multiple of 2";
+               obj["range"] = json::Array();
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
                for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
 
-               obj["range"] = json::Array();
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
                obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
             }else if(subtype == 24){
