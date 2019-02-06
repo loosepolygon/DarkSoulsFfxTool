@@ -13,7 +13,7 @@
 typedef unsigned char byte;
 
 struct TestFunctions{
-   typedef void (*TFunc)(json::JSON&);
+   typedef std::function<void(json::JSON&)> TFunc;
 
    static void defaultFunc(json::JSON& obj){}
 

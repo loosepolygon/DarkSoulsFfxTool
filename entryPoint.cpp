@@ -104,6 +104,30 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
    }
 }
 
+void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
+   std::string outputText;
+
+   std::wstring dirArg = L"mkdir " + jsonDir;
+   if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
+   _wsystem(dirArg.c_str());
+
+   TestFunctions testFunctions;
+   testFunctions.onPond2Subtype = [&](json::JSON& obj){
+      int type = obj["subtypeType"].ToInt();
+      if(type == 5){
+         outputText += obj["floats"].dump() + "\n";
+      }
+   };
+
+   for(const std::wstring& fileName : getFileNamesInDir(originalDir)){
+      ffxToJson(originalDir + fileName, jsonDir + fileName + L".json", testFunctions);
+   }
+
+   FILE* file = _wfopen(L"output.txt", L"wb");
+   fwrite(outputText.data(), 1, outputText.size(), file);
+   fclose(file);
+}
+
 void testing(){
    std::wstring allFfxDir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
 
@@ -117,7 +141,8 @@ void testing(){
    //   ffxToJson(ffxPath, jsonPath);
    //}
 
-   importEveryFfx(allFfxDir, L"json/");
+   //importEveryFfx(allFfxDir, L"json/");
+   importEveryFfxAndResearch(allFfxDir, L"json/");
 
 
    //for(int ffxId : {2125}){
@@ -129,7 +154,9 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+   //exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+
+
 }
 
 void mainProgram(int argCount, wchar_t** args){
