@@ -187,7 +187,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeMainAST(mainASTIndex);
          }
       }else if(type == 38){
-         dw.write<int>(data3["unk1"].ToInt());
+         dw.write<int>(data3["pond1Or2TypeMaybe"].ToInt());
 
          int mainASTIndex = data3["mainASTIndex"].ToInt();
          if(mainASTIndex == -1){

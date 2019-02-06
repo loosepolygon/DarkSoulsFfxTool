@@ -180,7 +180,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             data3["mainASTIndex"] = -1;
          }
       }else if(type == 38){
-         data3["unk1"] = dr.readInt(addr + 4);
+         data3["pond1Or2TypeMaybe"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
             data3["mainASTIndex"] = readAST(astOffset, nullptr);
@@ -236,7 +236,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          sprintf(sBuffer, "AST Type %d: %s", 1, "Unknown, has Data3s and optional struct");
       }else if(pond2Offset){
          ast["astType"] = 2;
-         sprintf(sBuffer, "AST Type %d: %s", 2, "Shader params and stuff?");
+         sprintf(sBuffer, "AST Type %d: %s", 2, "Sprite/model emission and data curves");
       }else{
          ast["astType"] = 0;
          sprintf(sBuffer, "AST Type %d: %s", 0, "Empty");
@@ -687,7 +687,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readSubtypes(7);
          }else if(type == 108){
             readFloat();
-            readFloat();
+            readFloat("curvesTimeMaybe");
             readFloat();
             readInt();
             readFloat();
@@ -705,10 +705,20 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             readSubtype("pitchSpeed");
             readSubtype("yawSpeed");
             readSubtype("rollSpeed");
-            readSubtypes(3);
+            readSubtype("rotData1Maybe");
+            readSubtype("rotData2Maybe");
+            readSubtype("rotData3Maybe");
             readInt();
             readInt();
-            readSubtypes(14);
+            readSubtypes(6);
+            readSubtype("colorData1R");
+            readSubtype("colorData1G");
+            readSubtype("colorData1B");
+            readSubtype("colorData1A");
+            readSubtype("colorData2R");
+            readSubtype("colorData2G");
+            readSubtype("colorData2B");
+            readSubtype("colorData2A");
             readInt();
             readInt();
             readInt();
