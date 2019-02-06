@@ -372,12 +372,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
             }else if(subtype == 5){
-               obj["note"] = "Multiple of 2 (with 2 extra)";
+               obj["note"] = "Multiple of 2";
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2 + 2; ++n){
+               for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
+
+               obj["range"] = json::Array();
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
             }else if(subtype == 6){
                obj["note"] = "Multiple of 2";
                json::JSON& floats = obj["floats"] = json::Array();
@@ -385,14 +389,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
+
                obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2) * 4);
             }else if(subtype == 7){
-               obj["note"] = "Multiple of 2 (with 2 extra)";
+               obj["note"] = "Multiple of 2";
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2 + 2; ++n){
+               for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
+               obj["range"] = json::Array();
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
+
                obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2 + 2) * 4);
             }else if(subtype == 8){
                obj["note"] = "Multiple of 4";
@@ -402,12 +411,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
             }else if(subtype == 9){
-               obj["note"] = "Multiple of 4 (with 2 extra)";
+               obj["note"] = "Multiple of 4";
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 4 + 2; ++n){
+               for(int n = 0; n < floatCount * 4; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
+
+               obj["range"] = json::Array();
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 0));
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 4));
             }else if(subtype == 12){
                obj["note"] = "Multiple of 2";
                json::JSON& floats = obj["floats"] = json::Array();
@@ -423,12 +436,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
             }else if(subtype == 17){
-               obj["note"] = "Multiple of 2 (with 2 extra)";
+               obj["note"] = "Multiple of 2";
                json::JSON& floats = obj["floats"] = json::Array();
                int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2 + 2; ++n){
+               for(int n = 0; n < floatCount * 2; ++n){
                   floats.append(drP.readFloat(offset + 4 + n * 4));
                }
+
+               obj["range"] = json::Array();
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
+               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
             }else if(subtype == 24){
                obj["unk1"] = drP.readFloat(offset + 0);
             }else if(subtype == 25){

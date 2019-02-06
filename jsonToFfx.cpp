@@ -337,18 +337,19 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                type == 0 || type == 4 || type == 5 || type == 6 || type == 7 || type == 8 ||
                type == 9 || type == 12 || type == 16 || type == 17
             ){
-               if(type == 0 || type == 4 || type == 6 || type == 12 || type == 16){
+               if(type == 0 || type == 4 || type == 6 || type == 12 || type == 16 || type == 5 || type == 7 || type == 17){
                   dwSubtypeData->write<int>(subtype["floats"].size() / 2);
-               }else if(type == 5 || type == 7 || type == 17){
-                  dwSubtypeData->write<int>((subtype["floats"].size() - 2) / 2);
-               }else if(type == 8){
+               }else if(type == 8 || type == 9){
                   dwSubtypeData->write<int>(subtype["floats"].size() / 4);
-               }else if(type == 9){
-                  dwSubtypeData->write<int>((subtype["floats"].size() - 2) / 4);
                }
 
                for(json::JSON& v : subtype["floats"].ArrayRange()){
                   dwSubtypeData->write<float>(v.ToFloat());
+               }
+
+               if(type == 5 || type == 7 || type == 17 || type == 9){
+                  dwSubtypeData->write<float>(subtype["range"][0].ToFloat());
+                  dwSubtypeData->write<float>(subtype["range"][1].ToFloat());
                }
 
                if(type == 6 || type == 7){

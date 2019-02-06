@@ -82,11 +82,7 @@ void importEveryFfx(std::wstring originalDir, std::wstring jsonDir){
 }
 
 void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::wstring ffxDir){
-   std::wstring dirArg = L"mkdir " + jsonDir;
-   if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
-   _wsystem(dirArg.c_str());
-
-   dirArg = L"mkdir " + ffxDir;
+   std::wstring dirArg = L"mkdir " + ffxDir;
    if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
    _wsystem(dirArg.c_str());
 
@@ -102,6 +98,8 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
          throw;
       }
    }
+
+   system("pause");
 }
 
 void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
@@ -141,8 +139,8 @@ void testing(){
    //   ffxToJson(ffxPath, jsonPath);
    //}
 
-   //importEveryFfx(allFfxDir, L"json/");
-   importEveryFfxAndResearch(allFfxDir, L"json/");
+   importEveryFfx(allFfxDir, L"json/");
+   //importEveryFfxAndResearch(allFfxDir, L"json/");
 
 
    //for(int ffxId : {2125}){
@@ -154,7 +152,7 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   //exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+   exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
 
 
 }
