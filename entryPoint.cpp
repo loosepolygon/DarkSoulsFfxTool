@@ -71,67 +71,26 @@ std::string getMD5(const std::wstring& filePath){
    return std::move(md5.hexdigest());
 }
 
-void importEveryFfx(std::wstring dir){
-   std::vector<std::wstring> fileList;
-   {
-      std::wstring fileListPath = dir + L"fileListFull.txt";
-      FILE* file = _wfopen(fileListPath.c_str(), L"r");
+void importEveryFfx(std::wstring originalDir, std::wstring jsonDir){
+   std::wstring dirArg = L"mkdir " + jsonDir;
+   if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
+   _wsystem(dirArg.c_str());
 
-      fseek(file, 0, SEEK_END);
-      long fileSize = ftell(file);
-      fseek(file, 0, SEEK_SET);
-
-      wchar_t endianness;
-      fread(&endianness, sizeof(wchar_t), 1, file);
-
-      std::wstring fullText;
-      fullText.resize(fileSize - sizeof(wchar_t));
-      fread(&fullText[0], sizeof(fullText[0]), fullText.size(), file);
-      fclose(file);
-
-      std::wstringstream ss(fullText);
-      std::wstring item;
-      while (std::getline(ss, item, L'\n')) {
-         if(item[0] != '\0'){
-            fileList.push_back(item);
-         }
-      }
-   }
-
-   system("mkdir json");
-   for(const std::wstring& fileName : fileList){
-      ffxToJson(dir + fileName, L"json/" + fileName + L".json");
+   for(const std::wstring& fileName : getFileNamesInDir(originalDir)){
+      ffxToJson(originalDir + fileName, jsonDir + fileName + L".json");
    }
 }
 
 void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::wstring ffxDir){
-   std::vector<std::wstring> fileList;
-   {
-      std::wstring fileListPath = originalDir + L"fileListFull.txt";
-      FILE* file = _wfopen(fileListPath.c_str(), L"r");
+   std::wstring dirArg = L"mkdir " + jsonDir;
+   if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
+   _wsystem(dirArg.c_str());
 
-      fseek(file, 0, SEEK_END);
-      long fileSize = ftell(file);
-      fseek(file, 0, SEEK_SET);
+   dirArg = L"mkdir " + ffxDir;
+   if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
+   _wsystem(dirArg.c_str());
 
-      wchar_t endianness;
-      fread(&endianness, sizeof(wchar_t), 1, file);
-
-      std::wstring fullText;
-      fullText.resize(fileSize - sizeof(wchar_t));
-      fread(&fullText[0], sizeof(fullText[0]), fullText.size(), file);
-      fclose(file);
-
-      std::wstringstream ss(fullText);
-      std::wstring item;
-      while (std::getline(ss, item, L'\n')) {
-         if(item[0] != '\0'){
-            fileList.push_back(item);
-         }
-      }
-   }
-
-   for(const std::wstring& fileName : fileList){
+   for(const std::wstring& fileName : getFileNamesInDir(originalDir)){
       wprintf(L"%s\n", fileName.c_str());
 
       jsonToFfx(jsonDir + fileName + L".json", ffxDir + fileName);
@@ -145,20 +104,20 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
    }
 }
 
+void testing(){
+   std::wstring allFfxDir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
 
-int wmain(int argCount, wchar_t** args) {
-   //std::wstring testDir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
 
    //for(int ffxId : {459}){
    //   wchar_t wBuffer[250];
-   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", testDir.c_str(), ffxId);
+   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", allFfxDir.c_str(), ffxId);
    //   std::wstring ffxPath = wBuffer;
    //   swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
    //   std::wstring jsonPath = wBuffer;
    //   ffxToJson(ffxPath, jsonPath);
    //}
 
-   //importEveryFfx(testDir);
+   importEveryFfx(allFfxDir, L"json/");
 
 
    //for(int ffxId : {2125}){
@@ -170,8 +129,10 @@ int wmain(int argCount, wchar_t** args) {
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   //exportEveryFfxAndTest(testDir, L"json/", L"rebuilt/");
+   exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+}
 
+void mainProgram(int argCount, wchar_t** args){
    --argCount;
    ++args;
    if(argCount < 1 || argCount > 2){
@@ -184,7 +145,6 @@ int wmain(int argCount, wchar_t** args) {
    std::wstring inputPath;
    std::wstring outputPath;
 
-   // inputPath
    inputPath = args[0];
    getPathInfo(inputPath, dir, fileName);
    extension = getExtension(fileName);
@@ -213,6 +173,9 @@ int wmain(int argCount, wchar_t** args) {
       jsonToFfx(inputPath, outputPath);
    }
    wprintf_s(L"Done.\n");
+}
 
-   //system("pause");
+int wmain(int argCount, wchar_t** args) {
+   testing();
+   //mainProgram(argCount, args);
 }

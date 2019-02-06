@@ -29,28 +29,6 @@ int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
    return findResult;
 }
 
-static void getPathInfo(const std::wstring& path, std::wstring& dir, std::wstring& fileName){
-   dir = L"./";
-   fileName = path;
-
-   for (int n = path.size(); n --> 0;) {
-      if (path[n] == L'/' || path[n] == L'\\') {
-         dir = path.substr(0, n + 1);
-         fileName = &path[n + 1];
-         break;
-      }
-   }
-}
-
-static std::wstring getExtension(const std::wstring& path){
-   const wchar_t* result = &path[path.size() - 1];
-   while(*result != L'.' && result != &path[0]){
-      --result;
-   }
-
-   return result;
-}
-
 struct DataReader{
    std::vector<byte> bytes;
    std::vector<bool> bytesRead;

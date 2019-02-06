@@ -1,5 +1,4 @@
 #include "header.hpp"
-#include "json.hpp"
 
 void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    std::string jsonText;

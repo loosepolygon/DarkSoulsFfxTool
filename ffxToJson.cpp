@@ -1,7 +1,6 @@
 #include "header.hpp"
-#include "json.hpp"
 
-void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
+void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const TestFunctions& testFunctions){
    DataReader dr;
    {
       FILE* file = _wfopen(ffxPath.c_str(), L"rb");
@@ -207,6 +206,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          ffxReadError(ffxPath, wBuffer);
       }
 
+      testFunctions.onData3(data3);
+
       return std::move(data3);
    };
 
@@ -255,6 +256,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
             data3s.append(std::move(readData3(offsetToData3)));
          }
 
+         testFunctions.onPond1(data3s);
+
          json::JSON& pond3 = ast["pond3"] = json::Object();
          if(pond3Offset){
             int type = dr.readInt(pond3Offset + 0);
@@ -298,6 +301,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                swprintf(wBuffer, sizeof(wBuffer), L"Pond3 type %d umfamiliar, addr = %d\n", type, pond3Offset);
                ffxReadError(ffxPath, wBuffer);
             }
+
+            testFunctions.onPond3(pond3);
          }
       }
 
@@ -445,6 +450,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
                swprintf(wBuffer, sizeof(wBuffer), L"Pond2 subtype %d unfamiliar, addr = %d\n", subtype, fullOffset);
                ffxReadError(ffxPath, wBuffer);
             }
+
+            testFunctions.onPond2Subtype(obj);
          };
          auto readSubtypes = [&](int count) -> void{
             for(int n = 0; n < count; ++n){
@@ -727,7 +734,11 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath){
          }else{
             ffxReadError(ffxPath, L"pond2 unknown type");
          }
+
+         testFunctions.onPond2(pond2);
       }
+
+      testFunctions.onAST(ast);
 
       if(destObjectInstead){
          *destObjectInstead = std::move(ast);

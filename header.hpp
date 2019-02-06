@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -10,11 +12,30 @@
 
 typedef unsigned char byte;
 
+struct TestFunctions{
+   typedef void (*TFunc)(json::JSON&);
+
+   static void defaultFunc(json::JSON& obj){}
+
+   TFunc onData3 = &defaultFunc;
+   TFunc onAST = &defaultFunc;
+   TFunc onPond1 = &defaultFunc;
+   TFunc onPond2 = &defaultFunc;
+   TFunc onPond3 = &defaultFunc;
+   TFunc onPond2Subtype = &defaultFunc;
+};
+
+// utility.cpp
+
 #include "utility.inl"
+
+void getPathInfo(const std::wstring& path, std::wstring& dir, std::wstring& fileName);
+std::wstring getExtension(const std::wstring& path);
+std::vector<std::wstring> getFileNamesInDir(std::wstring path);
 
 // ffxToJson.cpp
 
-void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath);
+void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const TestFunctions& testFunctions = TestFunctions());
 
 // jsonToFfx.cpp
 
