@@ -201,6 +201,6 @@ void mainProgram(int argCount, wchar_t** args){
 }
 
 int wmain(int argCount, wchar_t** args) {
-   testing();
-   //mainProgram(argCount, args);
+   //testing();
+   mainProgram(argCount, args);
 }
