@@ -323,56 +323,69 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dwPond2->writeOffsetToFix(*dwPreDataSubtypes, 0);
          dwPond2->writeOffsetToFix(dw, astOffset);
 
-         auto writeSubtype = [&](DataWriter& dw, json::JSON& subtype) -> void{
-            int type = subtype["subtypeType"].ToInt();
-            dw.write<int>(type);
+         auto writeSubtype = [&](DataWriter& dw, json::JSON& obj) -> void{
+            int subtype = obj["subtypeType"].ToInt();
+            dw.write<int>(subtype);
 
-            if(type == 28){
+            if(subtype == 28){
                dw.write<int>(0);
             }else{
                dw.writeOffsetToFix(*dwSubtypeData, dwSubtypeData->bytes.size());
             }
 
-            if(
-               type == 0 || type == 4 || type == 5 || type == 6 || type == 7 || type == 8 ||
-               type == 9 || type == 12 || type == 16 || type == 17
-            ){
-               if(type == 0 || type == 4 || type == 6 || type == 12 || type == 16 || type == 5 || type == 7 || type == 17){
-                  dwSubtypeData->write<int>(subtype["floats"].size() / 2);
-               }else if(type == 8 || type == 9){
-                  dwSubtypeData->write<int>(subtype["floats"].size() / 4);
+            bool isCurve = (
+               subtype == 0 || subtype == 4 || subtype == 5 || subtype == 6 || subtype == 7 ||
+               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17
+            );
+            if(isCurve){
+               bool hasRange = subtype == 5 || subtype == 7 || subtype == 9 || subtype == 17;
+               bool hasPreDataIndex = subtype == 6 || subtype == 7;
+               int numArrays = subtype == 8 || subtype == 9 ? 4 : 2;
+
+               dwSubtypeData->write<int>(obj["times"].size());
+
+               for(json::JSON& t : obj["times"].ArrayRange()){
+                  dwSubtypeData->write<float>(t.ToFloat());
                }
 
-               for(json::JSON& v : subtype["floats"].ArrayRange()){
-                  dwSubtypeData->write<float>(v.ToFloat());
+               if(numArrays == 2){
+                  for(json::JSON& v : obj["values"].ArrayRange()){
+                     dwSubtypeData->write<float>(v.ToFloat());
+                  }
+               }else{
+                  for(const json::JSON& values : {obj["values1"], obj["values2"], obj["values3"]}){
+                     for(const json::JSON& v : values.ArrayRange()){
+                        dwSubtypeData->write<float>(v.ToFloat());
+                     }
+                  }
                }
 
-               if(type == 5 || type == 7 || type == 17 || type == 9){
-                  dwSubtypeData->write<float>(subtype["range"][0].ToFloat());
-                  dwSubtypeData->write<float>(subtype["range"][1].ToFloat());
+               if(hasRange){
+                  dwSubtypeData->write<float>(obj["range"][0].ToFloat());
+                  dwSubtypeData->write<float>(obj["range"][1].ToFloat());
                }
 
-               if(type == 6 || type == 7){
-                  dwSubtypeData->write<int>(subtype["preDataIndex"].ToInt());
+               if(hasPreDataIndex){
+                  dwSubtypeData->write<int>(obj["preDataIndex"].ToInt());
                }
-            }else if(type == 24){
-               dwSubtypeData->write<float>(subtype["unk1"].ToFloat());
-            }else if(type == 25){
-               dwSubtypeData->write<float>(subtype["unk1"].ToFloat());
-               dwSubtypeData->write<float>(subtype["unk2"].ToFloat());
-               dwSubtypeData->write<float>(subtype["unk3"].ToFloat());
-            }else if(type == 26){
-               dwSubtypeData->write<float>(subtype["unk1"].ToFloat());
-               dwSubtypeData->write<int>(subtype["unk2"].ToInt());
-            }else if(type == 27){
-               dwSubtypeData->write<float>(subtype["unk1"].ToFloat());
-               dwSubtypeData->write<float>(subtype["unk2"].ToFloat());
-               dwSubtypeData->write<float>(subtype["unk3"].ToFloat());
-               dwSubtypeData->write<int>(subtype["preDataIndex"].ToInt());
-            }else if(type == 28){
+            }else if(subtype == 24){
+               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
+            }else if(subtype == 25){
+               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
+               dwSubtypeData->write<float>(obj["unk2"].ToFloat());
+               dwSubtypeData->write<float>(obj["unk3"].ToFloat());
+            }else if(subtype == 26){
+               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
+               dwSubtypeData->write<int>(obj["unk2"].ToInt());
+            }else if(subtype == 27){
+               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
+               dwSubtypeData->write<float>(obj["unk2"].ToFloat());
+               dwSubtypeData->write<float>(obj["unk3"].ToFloat());
+               dwSubtypeData->write<int>(obj["preDataIndex"].ToInt());
+            }else if(subtype == 28){
                // Empty
             }else{
-               swprintf(wBuffer, sizeof(wBuffer), L"Pond2 subtype %d unfamiliar", type);
+               swprintf(wBuffer, sizeof(wBuffer), L"Pond2 subtype %d unfamiliar", subtype);
                jsonReadError(ffxPath, wBuffer);
             }
          };

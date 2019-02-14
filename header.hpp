@@ -13,9 +13,14 @@
 typedef unsigned char byte;
 
 struct TestFunctions{
-   typedef std::function<void(json::JSON&)> TFunc;
+   struct Context{
+      json::JSON& parent;
+      int ffxId;
+   };
 
-   static void defaultFunc(json::JSON& obj){}
+   typedef std::function<void(json::JSON&, Context)> TFunc;
+
+   static void defaultFunc(json::JSON& obj, Context context){}
 
    TFunc onData3 = &defaultFunc;
    TFunc onAST = &defaultFunc;

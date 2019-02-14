@@ -206,7 +206,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          ffxReadError(ffxPath, wBuffer);
       }
 
-      testFunctions.onData3(data3);
+      testFunctions.onData3(data3, {root, root["ffxId"].ToInt()});
 
       return std::move(data3);
    };
@@ -256,7 +256,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             data3s.append(std::move(readData3(offsetToData3)));
          }
 
-         testFunctions.onPond1(data3s);
+         testFunctions.onPond1(data3s, {ast, root["ffxId"].ToInt()});
 
          json::JSON& pond3 = ast["pond3"] = json::Object();
          if(pond3Offset){
@@ -302,7 +302,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                ffxReadError(ffxPath, wBuffer);
             }
 
-            testFunctions.onPond3(pond3);
+            testFunctions.onPond3(pond3, {ast, root["ffxId"].ToInt()});
          }
       }
 
@@ -357,95 +357,72 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             json::JSON& obj = (*currentObject)[name] = json::Object();
             obj["subtypeType"] = subtype;
 
-            if(subtype == 0){
-               obj["note"] = "Multiple of 2";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-            }else if(subtype == 4){
-               obj["note"] = "Multiple of 2";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-            }else if(subtype == 5){
-               obj["note"] = "Multiple of 2 with range";
-               obj["range"] = json::Array();
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
+            bool isCurve = (
+               subtype == 0 || subtype == 4 || subtype == 5 || subtype == 6 || subtype == 7 ||
+               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17
+            );
+            if(isCurve){
+               bool hasRange = subtype == 5 || subtype == 7 || subtype == 9 || subtype == 17;
+               bool hasPreDataIndex = subtype == 6 || subtype == 7;
+               int numArrays = subtype == 8 || subtype == 9 ? 4 : 2;
+               const char* curveType = "unknown";
+               if(subtype == 0 || subtype == 12) curveType = "constant";
+               bool repeats = subtype == 12 || subtype == 16;
+
+               sprintf(
+                  sBuffer,
+                  "Subtype %d: Curve type: %s; Repeat: %s",
+                  subtype, curveType, repeats ? "true" : "false"
+               );
+               obj["note"] = sBuffer;
+
+               int arraySize = drP.readInt(offset);
+               offset += 4;
+
+               if(hasRange){
+                  obj["range"] = json::Array();
                }
 
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
-            }else if(subtype == 6){
-               obj["note"] = "Multiple of 2 with preDataIndex";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
+               obj["times"] = json::Array();
+               json::JSON& times = obj["times"];
+               for(int n = 0; n < arraySize; ++n){
+                  obj["times"].append(drP.readFloat(offset));
+                  offset += 4;
                }
 
-               obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2) * 4);
-            }else if(subtype == 7){
-               obj["note"] = "Multiple of 2 with range and preDataIndex";
-               obj["range"] = json::Array();
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
-
-               obj["preDataIndex"] = drP.readInt(offset + 4 + (floatCount * 2 + 2) * 4);
-            }else if(subtype == 8){
-               obj["note"] = "Multiple of 4";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 4; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-            }else if(subtype == 9){
-               obj["note"] = "Multiple of 4 with range";
-               obj["range"] = json::Array();
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 4; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
+               if(numArrays == 2){
+                  obj["values"] = json::Array();
+                  json::JSON& values = obj["values"];
+                  for(int n = 0; n < arraySize; ++n){
+                     values.append(drP.readFloat(offset));
+                     offset += 4;
+                  }
+               }else{
+                  obj["values1"] = json::Array();
+                  obj["values2"] = json::Array();
+                  obj["values3"] = json::Array();
+                  json::JSON& values1 = obj["values1"];
+                  json::JSON& values2 = obj["values2"];
+                  json::JSON& values3 = obj["values3"];
+                  for(int n = 0; n < arraySize; ++n){
+                     values1.append(drP.readFloat(arraySize*4*0 + offset));
+                     values2.append(drP.readFloat(arraySize*4*1 + offset));
+                     values3.append(drP.readFloat(arraySize*4*2 + offset));
+                     offset += 4;
+                  }
+                  offset += arraySize * 4 * 2;
                }
 
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 0));
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 4) * 4 + 4));
-            }else if(subtype == 12){
-               obj["note"] = "Multiple of 2";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-            }else if(subtype == 16){
-               obj["note"] = "Multiple of 2";
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
-               }
-            }else if(subtype == 17){
-               obj["note"] = "Multiple of 2 with range";
-               obj["range"] = json::Array();
-               json::JSON& floats = obj["floats"] = json::Array();
-               int floatCount = drP.readInt(offset + 0);
-               for(int n = 0; n < floatCount * 2; ++n){
-                  floats.append(drP.readFloat(offset + 4 + n * 4));
+               if(hasRange){
+                  obj["range"].append(drP.readFloat(offset + 0));
+                  obj["range"].append(drP.readFloat(offset + 4));
+
+                  offset += 8;
                }
 
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 0));
-               obj["range"].append(drP.readFloat(offset + 4 + (floatCount * 2) * 4 + 4));
+               if(hasPreDataIndex){
+                  obj["preDataIndex"] = drP.readInt(offset);
+               }
             }else if(subtype == 24){
                obj["unk1"] = drP.readFloat(offset + 0);
             }else if(subtype == 25){
@@ -468,7 +445,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                ffxReadError(ffxPath, wBuffer);
             }
 
-            testFunctions.onPond2Subtype(obj);
+            testFunctions.onPond2Subtype(obj, {*currentObject, root["ffxId"].ToInt()});
          };
          auto readSubtypes = [&](int count) -> void{
             for(int n = 0; n < count; ++n){
@@ -543,12 +520,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readInt();
          }else if(type == 32){
-            readSubtype("offsetX");
-            readSubtype("offsetY");
-            readSubtype("offsetZ");
-            readSubtype("offsetPitch");
-            readSubtype("offsetYaw");
-            readSubtype("offsetRoll");
+            readSubtype("duplicateOffsetX");
+            readSubtype("duplicateOffsetY");
+            readSubtype("duplicateOffsetZ");
+            readSubtype();
+            readSubtype();
+            readSubtype("weirdPerpendicularDuplicateAmount");
             readInt();
             readInt();
          }else if(type == 40){
@@ -752,10 +729,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             ffxReadError(ffxPath, L"pond2 unknown type");
          }
 
-         testFunctions.onPond2(pond2);
+         testFunctions.onPond2(pond2, {ast, root["ffxId"].ToInt()});
       }
 
-      testFunctions.onAST(ast);
+      testFunctions.onAST(ast, {root, root["ffxId"].ToInt()});
 
       if(destObjectInstead){
          *destObjectInstead = std::move(ast);
