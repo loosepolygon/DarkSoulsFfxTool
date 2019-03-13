@@ -84,7 +84,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          for(json::JSON& value : data3["bunchaInts"].ArrayRange()){
             dwSubDataAndPond3s.write<int>(value.ToInt());
          }
-      }else if(type == 3 || type == 5 || type == 6 || type == 9 || type == 11 || type == 89){
+      }else if(type == 3 || type == 5 || type == 6 || type == 9 || type == 89){
          int floatCount = data3["floats"].size();
          int intCount = data3["ints"].size();
          if(floatCount != intCount){
@@ -108,7 +108,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dw.write<int>(data3["unk1"].ToInt());
             dw.write<int>(data3["unk2"].ToInt());
          }
-      }else if(type == 12 || type == 91 || type == 95){
+      }else if(type == 11 || type == 12 || type == 91 || type == 95){
          int floatCountA = data3["floatsA"].size();
          int floatCountB = data3["floatsB"].size();
          if(floatCountA != floatCountB){
@@ -369,11 +369,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                   dwSubtypeData->write<int>(obj["preDataIndex"].ToInt());
                }
             }else if(subtype == 24){
-               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
+               dwSubtypeData->write<float>(obj["constant"].ToFloat());
             }else if(subtype == 25){
-               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
-               dwSubtypeData->write<float>(obj["unk2"].ToFloat());
-               dwSubtypeData->write<float>(obj["unk3"].ToFloat());
+               dwSubtypeData->write<float>(obj["base"].ToFloat());
+               dwSubtypeData->write<float>(obj["unknownA"].ToFloat());
+               dwSubtypeData->write<float>(obj["unknownB"].ToFloat());
             }else if(subtype == 26){
                dwSubtypeData->write<float>(obj["unk1"].ToFloat());
                dwSubtypeData->write<int>(obj["unk2"].ToInt());
@@ -398,7 +398,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          std::vector<json::JSON> vars;
          int varIndex = 0;
          for(std::pair<std::string, json::JSON>& pair : pond2.ObjectRange()){
-            if(varIndex++ >= 2){
+            if(varIndex++ >= 3){
                vars.push_back(pair.second);
             }
          }

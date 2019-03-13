@@ -1,30 +1,33 @@
 #include "header.hpp"
 #include "md5.hpp"
 
-int jsonVersion = 1;
+int jsonVersion = 2;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
-
+   system("pause");
    throw;
 }
 
 void ffxWriteError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error writing ffx file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   system("pause");
    throw;
 }
 
 void jsonReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading json file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   system("pause");
    throw;
 }
 
 void jsonWriteError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error writing json file '" + path + L"': " + text;
    fwprintf_s(stderr, L"%s\n", errorMessage.c_str());
+   system("pause");
    throw;
 }
 
@@ -109,11 +112,41 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
    _wsystem(dirArg.c_str());
 
+   char sBuffer[200];
+
    TestFunctions testFunctions;
-   testFunctions.onPond2Subtype = [&](json::JSON& obj){
+
+   /*testFunctions.onPond2Subtype = [&](json::JSON& obj, TestFunctions::Context context){
       int type = obj["subtypeType"].ToInt();
-      if(type == 5){
-         outputText += obj["floats"].dump() + "\n";
+      if(type == 8){
+         sprintf(sBuffer, "P2T%d, ffx %d\n", context.parent["pond2Type"].ToInt(), context.ffxId);
+         outputText += sBuffer;
+
+         json::JSON a1 = json::Array();
+         json::JSON a2 = json::Array();
+         json::JSON a3 = json::Array();
+         json::JSON a4 = json::Array();
+         int count = obj["floats"].size() / 4;
+         for(int n = 0; n < count; ++n){
+            a1.append(obj["floats"][count * 0 + n]);
+            a2.append(obj["floats"][count * 1 + n]);
+            a3.append(obj["floats"][count * 2 + n]);
+            a4.append(obj["floats"][count * 3 + n]);
+         }
+         outputText += a1.dump() + "\n";
+         outputText += a2.dump() + "\n";
+         outputText += a3.dump() + "\n";
+         outputText += a4.dump() + "\n\n";
+      }
+   };*/
+
+   testFunctions.onAST = [&](json::JSON& obj, int astSupertype, TestFunctions::Context context){
+      if(astSupertype == 104){
+         //printf("%d\n", obj["pond1Data3s"].size());
+         for(json::JSON data3 : obj["pond1Data3s"].ArrayRange()){
+            printf("%d, ", data3["data3Type"].ToInt());
+         }
+         printf("\n");
       }
    };
 
@@ -121,9 +154,11 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
       ffxToJson(originalDir + fileName, jsonDir + fileName + L".json", testFunctions);
    }
 
-   FILE* file = _wfopen(L"output.txt", L"wb");
+   FILE* file = _wfopen(L"P2ST8.txt", L"wb");
    fwrite(outputText.data(), 1, outputText.size(), file);
    fclose(file);
+
+   system("pause");
 }
 
 void testing(){
@@ -153,8 +188,6 @@ void testing(){
    //}
 
    exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
-
-
 }
 
 void mainProgram(int argCount, wchar_t** args){

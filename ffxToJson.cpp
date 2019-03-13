@@ -36,7 +36,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    json::JSON& mainASTs = root["mainASTs"];
 
    std::function<json::JSON(int)> readData3;
-   std::function<json::JSON(int, json::JSON*)> readAST;
+   std::function<json::JSON(int, int, json::JSON*)> readAST;
 
    readData3 = [&](int addr) -> json::JSON{
       json::JSON data3 = json::Object();
@@ -68,7 +68,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int n = 0; n < count; ++n){
             bunchaInts.append(dr.readInt(offset + n * 4));
          }
-      }else if(type == 3 || type == 5 || type == 6 || type == 9 || type == 11){
+      }else if(type == 3 || type == 5 || type == 6 || type == 9){
          int offsetToFloats = dr.readInt(addr + 4);
          int offsetToInts = dr.readInt(addr + 8);
          int count = dr.readInt(addr + 12);
@@ -101,7 +101,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
          data3["unk1"] = dr.readInt(addr + 16);
          data3["unk2"] = dr.readInt(addr + 20);
-      }else if(type == 12){
+      }else if(type == 11 || type == 12){
          int offsetA = dr.readInt(addr + 4);
          int offsetB = dr.readInt(addr + 8);
          int count = dr.readInt(addr + 12);
@@ -174,15 +174,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          data3["refFfxId"] = dr.readInt(addr + 4);
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["mainASTIndex"] = readAST(astOffset, nullptr);
+            data3["mainASTIndex"] = readAST(astOffset, -37, nullptr);
          }else{
             data3["mainASTIndex"] = -1;
          }
       }else if(type == 38){
-         data3["pond1Or2TypeMaybe"] = dr.readInt(addr + 4);
+         int pond1Or2TypeMaybe = dr.readInt(addr + 4);
+         data3["pond1Or2TypeMaybe"] = pond1Or2TypeMaybe;
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["mainASTIndex"] = readAST(astOffset, nullptr);
+            data3["mainASTIndex"] = readAST(astOffset, pond1Or2TypeMaybe, nullptr);
          }else{
             data3["mainASTIndex"] = -1;
          }
@@ -212,7 +213,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    };
 
    DataReader drP; // pond2
-   readAST = [&](int addr, json::JSON* destObjectInstead) -> int{
+   readAST = [&](int addr, int maybeType, json::JSON* destObjectInstead) -> int{
       int pond1Offset = dr.readInt(addr+0);
       int pond2Offset = dr.readInt(addr+16);
       int pond3Offset = dr.readInt(addr+20);
@@ -424,11 +425,11 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                   obj["preDataIndex"] = drP.readInt(offset);
                }
             }else if(subtype == 24){
-               obj["unk1"] = drP.readFloat(offset + 0);
+               obj["constant"] = drP.readFloat(offset + 0);
             }else if(subtype == 25){
-               obj["unk1"] = drP.readFloat(offset + 0);
-               obj["unk2"] = drP.readFloat(offset + 4);
-               obj["unk3"] = drP.readFloat(offset + 8);
+               obj["base"] = drP.readFloat(offset + 0);
+               obj["unknownA"] = drP.readFloat(offset + 4);
+               obj["unknownB"] = drP.readFloat(offset + 8);
             }else if(subtype == 26){
                obj["unk1"] = drP.readFloat(offset + 0);
                obj["unk2"] = drP.readInt(offset + 4);
@@ -457,6 +458,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& pond2 = ast["pond2"] = json::Object();
          int type = dr.readInt(pond2Offset + 0);
          pond2["pond2Type"] = type;
+         pond2["note"] = "";
          int totalSize = dr.readInt(pond2Offset + 4);
          int preDataCount = dr.readInt(pond2Offset + 8);
          int offsetToPreDataNumbers = dr.readInt(pond2Offset + 12);
@@ -505,7 +507,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
          }else if(type == 28){
-            readSubtypes(3);
+            pond2["note"] = "Pond2 type 28: initial speed";
+            readSubtype("transverseSpeed");
+            readSubtype();
+            readSubtype("forwardSpeed");
             readInt();
          }else if(type == 29){
             readSubtypes(5);
@@ -732,7 +737,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          testFunctions.onPond2(pond2, {ast, root["ffxId"].ToInt()});
       }
 
-      testFunctions.onAST(ast, {root, root["ffxId"].ToInt()});
+      testFunctions.onAST(ast, maybeType, {root, root["ffxId"].ToInt()});
 
       if(destObjectInstead){
          *destObjectInstead = std::move(ast);
@@ -793,8 +798,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       t133["always8Or10"] = dr.readInt(addr + 9 * 4);
       t133["preAST1"] = {};
       t133["preAST2"] = {};
-      readAST(addr + 10 * 4, &(t133["preAST1"]));
-      readAST(addr + 16 * 4, &(t133["preAST2"]));
+      readAST(addr + 10 * 4, -1, &(t133["preAST1"]));
+      readAST(addr + 16 * 4, -1, &(t133["preAST2"]));
 
       t133["houses"] = json::Array();
       int housesOffset = dr.readInt(addr + 22 * 4);
@@ -827,11 +832,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int b = 0; b < blossomCount; ++b){
             int blossomAndAstSize = 4 + 6 * 4;
 
+            int probablyType = dr.readInt(blossomOffset + b * blossomAndAstSize + 0);
             json::JSON entry = {
-               "probablyType", dr.readInt(blossomOffset + b * blossomAndAstSize + 0),
+               "probablyType", probablyType,
                "blossomAST", {}
             };
-            readAST(blossomOffset + b * blossomAndAstSize + 4, &(entry["blossomAST"]));
+            readAST(blossomOffset + b * blossomAndAstSize + 4, probablyType, &(entry["blossomAST"]));
 
             blossoms.append(std::move(entry));
          }

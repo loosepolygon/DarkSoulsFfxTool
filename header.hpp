@@ -18,16 +18,18 @@ struct TestFunctions{
       int ffxId;
    };
 
-   typedef std::function<void(json::JSON&, Context)> TFunc;
+   typedef std::function<void(json::JSON&, Context)> TFunc1;
+   typedef std::function<void(json::JSON&, int, Context)> TFunc2;
 
-   static void defaultFunc(json::JSON& obj, Context context){}
+   static void defaultFunc1(json::JSON& obj, Context context){}
+   static void defaultFunc2(json::JSON& obj, int type, Context context){}
 
-   TFunc onData3 = &defaultFunc;
-   TFunc onAST = &defaultFunc;
-   TFunc onPond1 = &defaultFunc;
-   TFunc onPond2 = &defaultFunc;
-   TFunc onPond3 = &defaultFunc;
-   TFunc onPond2Subtype = &defaultFunc;
+   TFunc1 onData3 = &defaultFunc1;
+   TFunc2 onAST = &defaultFunc2;
+   TFunc1 onPond1 = &defaultFunc1;
+   TFunc1 onPond2 = &defaultFunc1;
+   TFunc1 onPond3 = &defaultFunc1;
+   TFunc1 onPond2Subtype = &defaultFunc1;
 };
 
 // utility.cpp
