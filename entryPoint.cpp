@@ -44,7 +44,7 @@ void argError(const std::wstring& text){
    outputText += L"   * DSFfxTool \"My Test File.json\" f0000026.ffx\n";
 
    fwprintf_s(stderr, L"%s\n", outputText.c_str());
-
+   system("pause");
    exit(1);
 }
 
