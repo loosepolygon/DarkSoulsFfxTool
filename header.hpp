@@ -24,6 +24,7 @@ struct TestFunctions{
    static void defaultFunc1(json::JSON& obj, Context context){}
    static void defaultFunc2(json::JSON& obj, int type, Context context){}
 
+   TFunc1 onRoot = &defaultFunc1;
    TFunc1 onData3 = &defaultFunc1;
    TFunc2 onAST = &defaultFunc2;
    TFunc1 onPond1 = &defaultFunc1;

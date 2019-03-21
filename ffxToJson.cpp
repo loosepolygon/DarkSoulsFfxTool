@@ -848,6 +848,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       type133s.append(std::move(t133));
    }
 
+   testFunctions.onRoot(root, {root, root["ffxId"].ToInt()});
+
    std::string jsonText = root.dump(0, "   ");
    FILE* file = _wfopen(jsonPath.c_str(), L"w");
    if(file == NULL) {

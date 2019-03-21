@@ -105,6 +105,128 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
    system("pause");
 }
 
+void outputTree(json::JSON& root, std::wstring outputPath){
+   char sBuffer[300];
+   std::string outputText;
+
+   int depth = 0;
+   auto printLineStart = [&](){
+      for(int n = 0; n < depth; ++n){
+         outputText += "   ";
+      }
+      outputText += "* ";
+   };
+
+   std::function<void(json::JSON&, int, int, bool)> parseAST;
+   parseAST = [&](json::JSON& ast, int astIndex, int arg, bool isT37){
+      bool isMainAST = astIndex >= 0;
+
+      if(isMainAST){
+         printLineStart();
+         if(isT37){
+            sprintf(sBuffer, "AST[%d] (ref ffx %d)", astIndex, arg);
+         }else{
+            sprintf(sBuffer, "AST[%d] (T%d)", astIndex, arg);
+         }
+         outputText += sBuffer;
+         ++depth;
+      }
+
+      int astType = ast["astType"].ToInt();
+      if(astType == 0){
+         outputText += " (empty)\n";
+      }else if(astType == 1){
+         outputText += " (properties and ASTs)";
+
+         sprintf(sBuffer, " (x%d)", ast["pond1Data3s"].size());
+         outputText += sBuffer;
+
+         if(ast["pond3"].size() > 0){
+            sprintf(sBuffer, " (with P3T%d)", ast["pond3"]["pond3Type"].ToInt());
+            outputText += sBuffer;
+         }
+
+         outputText += "\n";
+
+         for(json::JSON& data3 : ast["pond1Data3s"].ArrayRange()){
+            int data3Type = data3["data3Type"].ToInt();
+            if(data3Type == 37 || data3Type == 38){
+               int otherASTIndex = data3["mainASTIndex"].ToInt();
+               if(otherASTIndex != -1){
+                  json::JSON& otherAST = root["mainASTs"][otherASTIndex];
+                  if(data3.hasKey("refFfxId")){
+                     parseAST(otherAST, otherASTIndex, data3["refFfxId"].ToInt(), true);
+                  }else{
+                     parseAST(otherAST, otherASTIndex, data3["pond1Or2TypeMaybe"].ToInt(), false);
+                  }
+               }
+            }
+         }
+      }else if(astType == 2){
+         outputText += " (particle emission and data curves)";
+
+         int pond2Type = ast["pond2"]["pond2Type"].ToInt();
+         for(int t : {27, 40, 43, 59, 61, 70, 71, 107, 108}){
+            if(pond2Type == t){
+               outputText += " **PARTICLE**";
+               break;
+            }
+         }
+
+         outputText += "\n";
+      }
+
+      if(isMainAST){
+         --depth;
+      }
+   };
+
+   if(root["type133s"].size() != 1){
+      //printf("nope");
+      return;
+   }
+
+   auto t133 = root["type133s"][0];
+   if(
+      t133["preAST1"]["astType"].ToInt() != 0 ||
+      t133["preAST2"]["astType"].ToInt() != 0
+   ){
+      //printf("nope");
+      return;
+   }
+
+   int houseCount = t133["houses"].size();
+   for(int h = 0; h < houseCount; ++h){
+      printLineStart();
+      sprintf(sBuffer, "house[%d]\n", h);
+      outputText += sBuffer;
+      ++depth;
+
+      json::JSON& house = t133["houses"][h];
+      int blossomCount = house["blossoms"].size();
+      for(int b = 0; b < blossomCount; ++b){
+         json::JSON& blossom = house["blossoms"][b];
+         json::JSON& blossomAST = blossom["blossomAST"];
+         int blossomType = blossom["probablyType"].ToInt();
+
+         printLineStart();
+         sprintf(sBuffer, "blossom[%d] (T%d)", b, blossomType);
+         outputText += sBuffer;
+         ++depth;
+
+         parseAST(blossomAST, -1, blossomType, false);
+
+         --depth;
+      }
+
+      --depth;
+   }
+
+   FILE* file = _wfopen(outputPath.c_str(), L"wb");
+   fwrite(outputText.data(), 1, outputText.size(), file);
+   fclose(file);
+}
+
 void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    std::string outputText;
 
@@ -112,7 +234,7 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
    _wsystem(dirArg.c_str());
 
-   char sBuffer[200];
+   //char sBuffer[200];
 
    TestFunctions testFunctions;
 
@@ -140,23 +262,33 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
       }
    };*/
 
-   testFunctions.onAST = [&](json::JSON& obj, int astSupertype, TestFunctions::Context context){
-      if(astSupertype == 104){
-         //printf("%d\n", obj["pond1Data3s"].size());
-         for(json::JSON data3 : obj["pond1Data3s"].ArrayRange()){
-            printf("%d, ", data3["data3Type"].ToInt());
-         }
-         printf("\n");
-      }
+   //testFunctions.onAST = [&](json::JSON& obj, int astSupertype, TestFunctions::Context context){
+   //   if(astSupertype == 104){
+   //      //printf("%d\n", obj["pond1Data3s"].size());
+   //      for(json::JSON data3 : obj["pond1Data3s"].ArrayRange()){
+   //         printf("%d, ", data3["data3Type"].ToInt());
+   //      }
+   //      printf("\n");
+   //   }
+   //};
+
+   system("mkdir tree");
+   testFunctions.onRoot = [&](json::JSON& root, TestFunctions::Context context) -> void{
+      wchar_t wBuffer[250];
+      swprintf(wBuffer, sizeof(wBuffer), L"tree/f%07d.txt", context.ffxId);
+      outputTree(root, wBuffer);
    };
+
 
    for(const std::wstring& fileName : getFileNamesInDir(originalDir)){
       ffxToJson(originalDir + fileName, jsonDir + fileName + L".json", testFunctions);
    }
 
-   FILE* file = _wfopen(L"P2ST8.txt", L"wb");
-   fwrite(outputText.data(), 1, outputText.size(), file);
-   fclose(file);
+
+   //FILE* file = _wfopen(L"P2ST8.txt", L"wb");
+   //fwrite(outputText.data(), 1, outputText.size(), file);
+   //fclose(file);
+
 
    system("pause");
 }
@@ -165,17 +297,18 @@ void testing(){
    std::wstring allFfxDir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
 
 
-   //for(int ffxId : {459}){
+   //TestFunctions testFunctions;
+   //for(int ffxId : {14428}){
    //   wchar_t wBuffer[250];
    //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", allFfxDir.c_str(), ffxId);
    //   std::wstring ffxPath = wBuffer;
    //   swprintf(wBuffer, sizeof(wBuffer), L"json/f%07d.ffx.json", ffxId);
    //   std::wstring jsonPath = wBuffer;
-   //   ffxToJson(ffxPath, jsonPath);
+   //   ffxToJson(ffxPath, jsonPath, testFunctions);
    //}
 
-   importEveryFfx(allFfxDir, L"json/");
-   //importEveryFfxAndResearch(allFfxDir, L"json/");
+   //importEveryFfx(allFfxDir, L"json/");
+   importEveryFfxAndResearch(allFfxDir, L"json/");
 
 
    //for(int ffxId : {2125}){
@@ -187,7 +320,7 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+   //exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
 }
 
 void mainProgram(int argCount, wchar_t** args){
