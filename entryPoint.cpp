@@ -181,45 +181,58 @@ void outputTree(json::JSON& root, std::wstring outputPath){
       }
    };
 
-   if(root["type133s"].size() != 1){
-      //printf("nope");
-      return;
-   }
+   for(int t = 0; t < root["type133s"].size(); ++t){
+      json::JSON& t133 = root["type133s"][t];
 
-   auto t133 = root["type133s"][0];
-   if(
-      t133["preAST1"]["astType"].ToInt() != 0 ||
-      t133["preAST2"]["astType"].ToInt() != 0
-   ){
-      //printf("nope");
-      return;
-   }
+      if(root["type133s"].size() > 1){
+         printLineStart();
+         sprintf(sBuffer, "Type133[%d]\n", t);
+         outputText += sBuffer;
+         ++depth;
+      }
 
-   int houseCount = t133["houses"].size();
-   for(int h = 0; h < houseCount; ++h){
-      printLineStart();
-      sprintf(sBuffer, "house[%d]\n", h);
-      outputText += sBuffer;
-      ++depth;
+      if(t133["preAST1"]["astType"].ToInt() != 0){
+         printLineStart();
+         outputText += "PreAST 1";
+         parseAST(t133["preAST1"], -1, -1, false);
+      }
+      if(t133["preAST2"]["astType"].ToInt() != 0){
+         printLineStart();
+         outputText += "PreAST 2";
+         parseAST(t133["preAST2"], -1, -1, false);
+      }
 
-      json::JSON& house = t133["houses"][h];
-      int blossomCount = house["blossoms"].size();
-      for(int b = 0; b < blossomCount; ++b){
-         json::JSON& blossom = house["blossoms"][b];
-         json::JSON& blossomAST = blossom["blossomAST"];
-         int blossomType = blossom["probablyType"].ToInt();
+      int houseCount = t133["houses"].size();
+      for(int h = 0; h < houseCount; ++h){
+         json::JSON& house = t133["houses"][h];
 
          printLineStart();
-         sprintf(sBuffer, "blossom[%d] (T%d)", b, blossomType);
+         sprintf(sBuffer, "house[%d]\n", h);
          outputText += sBuffer;
          ++depth;
 
-         parseAST(blossomAST, -1, blossomType, false);
+         int blossomCount = house["blossoms"].size();
+         for(int b = 0; b < blossomCount; ++b){
+            json::JSON& blossom = house["blossoms"][b];
+            json::JSON& blossomAST = blossom["blossomAST"];
+            int blossomType = blossom["probablyType"].ToInt();
+
+            printLineStart();
+            sprintf(sBuffer, "blossom[%d] (T%d)", b, blossomType);
+            outputText += sBuffer;
+            ++depth;
+
+            parseAST(blossomAST, -1, blossomType, false);
+
+            --depth;
+         }
 
          --depth;
       }
 
-      --depth;
+      if(root["type133s"].size() > 1){
+         --depth;
+      }
    }
 
    FILE* file = _wfopen(outputPath.c_str(), L"wb");
@@ -272,11 +285,299 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    //   }
    //};
 
-   system("mkdir tree");
-   testFunctions.onRoot = [&](json::JSON& root, TestFunctions::Context context) -> void{
-      wchar_t wBuffer[250];
-      swprintf(wBuffer, sizeof(wBuffer), L"tree/f%07d.txt", context.ffxId);
-      outputTree(root, wBuffer);
+
+   //system("mkdir tree");
+   //testFunctions.onRoot = [&](json::JSON& root, TestFunctions::Context context) -> void{
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, sizeof(wBuffer), L"tree/f%07d.txt", context.root["ffxId"].ToInt());
+   //   outputTree(root, wBuffer);
+   //};
+
+   testFunctions.onAST = [&](json::JSON& obj, TestFunctions::Context context, int sourceType, int arg){
+      if(sourceType == TestFunctions::Blossom){
+         int blossomType = arg;
+         if(blossomType == 5){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 7){
+            if(obj["pond1Data3s"].size() != 9){
+               throw;
+            }
+         }else if(blossomType == 12){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 14){
+            if(obj["pond1Data3s"].size() != 8){
+               throw;
+            }
+         }else if(blossomType == 16){
+            if(obj["pond1Data3s"].size() != 8){
+               throw;
+            }
+         }else if(blossomType == 17){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 21){
+            if(obj["pond1Data3s"].size() != 3){
+               throw;
+            }
+         }else if(blossomType == 41){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 51){
+            if(obj["pond1Data3s"].size() != 2){
+               throw;
+            }
+         }else if(blossomType == 63){
+            if(obj["pond1Data3s"].size() != 1){
+               throw;
+            }
+         }else if(blossomType == 75){
+            if(obj["pond1Data3s"].size() != 3){
+               throw;
+            }
+         }else if(blossomType == 79){
+            if(obj["pond1Data3s"].size() != 1){
+               throw;
+            }
+         }else if(blossomType == 80){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 87){
+            if(obj["pond1Data3s"].size() != 16){
+               throw;
+            }
+         }else if(blossomType == 95){
+            if(obj["pond1Data3s"].size() != 64){
+               throw;
+            }
+         }else if(blossomType == 99){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(blossomType == 104){
+            if(obj["pond1Data3s"].size() != 5){
+               throw;
+            }
+         }else if(blossomType == 109){
+            if(obj["pond1Data3s"].size() != 2){
+               throw;
+            }
+         }else if(blossomType == 112){
+            if(obj["pond1Data3s"].size() != 2){
+               throw;
+            }
+         }else{
+            printf("%d\n", blossomType);
+         }
+      }else if(sourceType == TestFunctions::Type37){
+         int refFfxId = arg;
+         if(refFfxId == 2020){
+            if(obj["pond1Data3s"].size() != 13){
+               throw;
+            }
+         }else if(refFfxId == 2023){
+            if(obj["pond1Data3s"].size() != 18){
+               throw;
+            }
+         }else if(refFfxId == 2024){
+            if(obj["pond1Data3s"].size() != 13){
+               throw;
+            }
+         }else if(refFfxId == 2031){
+            if(obj["pond1Data3s"].size() != 13){
+               throw;
+            }
+         }else if(refFfxId == 2032){
+            if(obj["pond1Data3s"].size() != 18){
+               throw;
+            }
+         }else if(refFfxId == 2101){
+            if(obj["pond1Data3s"].size() != 9){
+               throw;
+            }
+         }else if(refFfxId == 2102){
+            if(obj["pond1Data3s"].size() != 9){
+               throw;
+            }
+         }else if(refFfxId == 2115){
+            if(obj["pond1Data3s"].size() != 4){
+               throw;
+            }
+         }else if(refFfxId == 2116){
+            if(obj["pond1Data3s"].size() != 11){
+               throw;
+            }
+         }else if(refFfxId == 2117){
+            if(obj["pond1Data3s"].size() != 11){
+               throw;
+            }
+         }else if(refFfxId == 2118){
+            if(obj["pond1Data3s"].size() != 11){
+               throw;
+            }
+         }else if(refFfxId == 2121){
+            if(obj["pond1Data3s"].size() != 15){
+               throw;
+            }
+         }else if(refFfxId == 2123){
+            if(obj["pond1Data3s"].size() != 8){
+               throw;
+            }
+         }else{
+            printf("%d\n", refFfxId);
+         }
+      }else if(sourceType == TestFunctions::Type38){
+         int unk = arg;
+         if(unk == 0){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(unk == 3){
+            if(obj["pond2"]["pond2Type"].ToInt() != 61){
+               throw;
+            }
+         }else if(unk == 11){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(unk == 12){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(unk == 17){
+            if(obj["astType"].ToInt() != 0){
+               throw;
+            }
+         }else if(unk == 20){
+            if(obj["pond2"]["pond2Type"].ToInt() != 59){
+               throw;
+            }
+         }else{
+            if(obj["astType"].ToInt() == 1){
+               if(unk == 1){
+                  if(obj["pond1Data3s"].size() != 7){
+                     throw;
+                  }
+               }else if(unk == 4){
+                  if(obj["pond1Data3s"].size() != 5){
+                     throw;
+                  }
+               }else if(unk == 8){
+                  if(obj["pond1Data3s"].size() != 8){
+                     throw;
+                  }
+               }else if(unk == 10){
+                  if(obj["pond1Data3s"].size() != 7){
+                     throw;
+                  }
+               }else if(unk == 14){
+                  if(obj["pond1Data3s"].size() != 8){
+                     throw;
+                  }
+               }else if(unk == 18){
+                  if(obj["pond1Data3s"].size() != 9){
+                     throw;
+                  }
+               }else if(unk == 21){
+                  if(obj["pond1Data3s"].size() != 3){
+                     throw;
+                  }
+               }else if(unk == 24){
+                  if(obj["pond1Data3s"].size() != 12){
+                     throw;
+                  }
+               }else if(unk == 34){
+                  if(obj["pond1Data3s"].size() != 6){
+                     throw;
+                  }
+               }else if(unk == 35){
+                  if(obj["pond1Data3s"].size() != 6){
+                     throw;
+                  }
+               }else if(unk == 36){
+                  if(obj["pond1Data3s"].size() != 12){
+                     throw;
+                  }
+               }else if(unk == 46){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else if(unk == 51){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else if(unk == 52){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else if(unk == 54){
+                  if(obj["pond1Data3s"].size() != 7){
+                     throw;
+                  }
+               }else if(unk == 56){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else if(unk == 58){
+                  if(obj["pond1Data3s"].size() != 9){
+                     throw;
+                  }
+               }else if(unk == 63){
+                  if(obj["pond1Data3s"].size() != 1){
+                     throw;
+                  }
+               }else if(unk == 75){
+                  if(obj["pond1Data3s"].size() != 3){
+                     throw;
+                  }
+               }else if(unk == 79){
+                  if(obj["pond1Data3s"].size() != 1){
+                     throw;
+                  }
+               }else if(unk == 83){
+                  if(obj["pond1Data3s"].size() != 8){
+                     throw;
+                  }
+               }else if(unk == 87){
+                  if(obj["pond1Data3s"].size() != 16){
+                     throw;
+                  }
+               }else if(unk == 98){
+                  if(obj["pond1Data3s"].size() != 3){
+                     throw;
+                  }
+               }else if(unk == 109){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else if(unk == 111){
+                  if(obj["pond1Data3s"].size() != 7){
+                     throw;
+                  }
+               }else if(unk == 113){
+                  if(obj["pond1Data3s"].size() != 13){
+                     throw;
+                  }
+               }else if(unk == 115){
+                  if(obj["pond1Data3s"].size() != 2){
+                     throw;
+                  }
+               }else{
+                  printf("%d, %d\n", unk, obj["pond1Data3s"].size());
+               }
+            }else if(obj["astType"].ToInt() == 2){
+               if(unk != obj["pond2"]["pond2Type"].ToInt()){
+                  throw;
+               }
+            }
+         }
+      }
    };
 
 

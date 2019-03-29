@@ -15,14 +15,22 @@ typedef unsigned char byte;
 struct TestFunctions{
    struct Context{
       json::JSON& parent;
-      int ffxId;
+      json::JSON& root;
+   };
+
+   enum : int{
+      Pre1,
+      Pre2,
+      Blossom,
+      Type37,
+      Type38,
    };
 
    typedef std::function<void(json::JSON&, Context)> TFunc1;
-   typedef std::function<void(json::JSON&, int, Context)> TFunc2;
+   typedef std::function<void(json::JSON&, Context, int, int)> TFunc2;
 
    static void defaultFunc1(json::JSON& obj, Context context){}
-   static void defaultFunc2(json::JSON& obj, int type, Context context){}
+   static void defaultFunc2(json::JSON& obj, Context context, int sourceType, int arg){}
 
    TFunc1 onRoot = &defaultFunc1;
    TFunc1 onData3 = &defaultFunc1;

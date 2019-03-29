@@ -61,7 +61,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
       if(type == 112 || type == 113 || type == 129 || type == 130 || type == 131 || type == 132 || type == 136){
          // empty
-      }else if(type == 1 || type == 44 || type == 46 || type == 59 || type == 60 || type == 66 || type == 68 || type == 71 || type == 111 || type == 115 || type == 138 || type == 139){
+      }else if(type == 1 || type == 59 || type == 66 || type == 68 || type == 111 || type == 138 || type == 139){
          dw.write<int>(data3["unk1"].ToInt());
       }else if(type == 7 || type == 70){
          dw.write<float>(data3["unk1"].ToFloat());
@@ -198,7 +198,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
             writeMainAST(mainASTIndex);
          }
-      }else if(type == 45 || type == 47 || type == 87 || type == 114){
+      }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          dw.write<short>(data3["unk1"].ToInt());
          dw.write<short>(data3["unk2"].ToInt());
       }else if(type == 128){
