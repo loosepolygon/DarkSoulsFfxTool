@@ -247,44 +247,35 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
    _wsystem(dirArg.c_str());
 
-   //char sBuffer[200];
-
    TestFunctions testFunctions;
 
-   /*testFunctions.onPond2Subtype = [&](json::JSON& obj, TestFunctions::Context context){
-      int type = obj["subtypeType"].ToInt();
-      if(type == 8){
-         sprintf(sBuffer, "P2T%d, ffx %d\n", context.parent["pond2Type"].ToInt(), context.ffxId);
-         outputText += sBuffer;
 
-         json::JSON a1 = json::Array();
-         json::JSON a2 = json::Array();
-         json::JSON a3 = json::Array();
-         json::JSON a4 = json::Array();
-         int count = obj["floats"].size() / 4;
-         for(int n = 0; n < count; ++n){
-            a1.append(obj["floats"][count * 0 + n]);
-            a2.append(obj["floats"][count * 1 + n]);
-            a3.append(obj["floats"][count * 2 + n]);
-            a4.append(obj["floats"][count * 3 + n]);
-         }
-         outputText += a1.dump() + "\n";
-         outputText += a2.dump() + "\n";
-         outputText += a3.dump() + "\n";
-         outputText += a4.dump() + "\n\n";
-      }
-   };*/
+   //testFunctions.onPond2Subtype = [&](json::JSON& obj, TestFunctions::Context context){
+   //   int type = obj["subtypeType"].ToInt();
+   //   if(type == 8){
+   //      sprintf(sBuffer, "P2T%d, ffx %d\n", context.parent["pond2Type"].ToInt(), context.ffxId);
+   //      outputText += sBuffer;
 
-   //testFunctions.onAST = [&](json::JSON& obj, int astSupertype, TestFunctions::Context context){
-   //   if(astSupertype == 104){
-   //      //printf("%d\n", obj["pond1Data3s"].size());
-   //      for(json::JSON data3 : obj["pond1Data3s"].ArrayRange()){
-   //         printf("%d, ", data3["data3Type"].ToInt());
+   //      json::JSON a1 = json::Array();
+   //      json::JSON a2 = json::Array();
+   //      json::JSON a3 = json::Array();
+   //      json::JSON a4 = json::Array();
+   //      int count = obj["floats"].size() / 4;
+   //      for(int n = 0; n < count; ++n){
+   //         a1.append(obj["floats"][count * 0 + n]);
+   //         a2.append(obj["floats"][count * 1 + n]);
+   //         a3.append(obj["floats"][count * 2 + n]);
+   //         a4.append(obj["floats"][count * 3 + n]);
    //      }
-   //      printf("\n");
+   //      outputText += a1.dump() + "\n";
+   //      outputText += a2.dump() + "\n";
+   //      outputText += a3.dump() + "\n";
+   //      outputText += a4.dump() + "\n\n";
    //   }
    //};
 
+
+   // Output tree
 
    //system("mkdir tree");
    //testFunctions.onRoot = [&](json::JSON& root, TestFunctions::Context context) -> void{
@@ -292,6 +283,9 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
    //   swprintf(wBuffer, sizeof(wBuffer), L"tree/f%07d.txt", context.root["ffxId"].ToInt());
    //   outputTree(root, wBuffer);
    //};
+
+
+   // Test AST sources and supertypes
 
    testFunctions.onAST = [&](json::JSON& obj, TestFunctions::Context context, int sourceType, int arg){
       if(sourceType == TestFunctions::Blossom){
@@ -312,6 +306,13 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
             if(obj["pond1Data3s"].size() != 8){
                throw;
             }
+
+            //printf(
+            //   "%d, %d, %d\n",
+            //   obj["pond1Data3s"][0]["refFfxId"].ToInt(),
+            //   obj["pond1Data3s"][1]["refFfxId"].ToInt(),
+            //   obj["pond1Data3s"][2]["refFfxId"].ToInt()
+            //);
          }else if(blossomType == 16){
             if(obj["pond1Data3s"].size() != 8){
                throw;
@@ -384,6 +385,64 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
          }else if(refFfxId == 2023){
             if(obj["pond1Data3s"].size() != 18){
                throw;
+            }
+
+            auto getData3Type = [&](int index) -> int{
+               return obj["pond1Data3s"][index]["data3Type"].ToInt();
+            };
+
+            //printf(
+            //   "%d, %d, %d, %d,\n%d, %d, %d, %d\n\n",
+            //   getData3Type(0),
+            //   getData3Type(1),
+            //   getData3Type(2),
+            //   getData3Type(3),
+            //   getData3Type(4),
+            //   getData3Type(5),
+            //   getData3Type(6),
+            //   getData3Type(7)
+            //);
+
+            // Looking at first 8 types as a test
+            if(
+               getData3Type(0) != 70 ||
+               getData3Type(1) != 70 ||
+               getData3Type(2) != 1 ||
+               getData3Type(3) != 38 ||
+               getData3Type(4) != 38 ||
+               getData3Type(5) != 70 ||
+               (getData3Type(6) != 3 && getData3Type(6) != 5 && getData3Type(6) != 6) ||
+               getData3Type(7) != 1
+            ){
+               throw;
+            }
+
+            // Testing each AST ref
+            if(
+               getData3Type(3) != 38 ||
+               getData3Type(4) != 38 ||
+               getData3Type(11) != 38 ||
+               getData3Type(12) != 38 ||
+               getData3Type(13) != 38 ||
+               getData3Type(14) != 38 ||
+               getData3Type(15) != 38 ||
+               getData3Type(17) != 38
+            ){
+               throw;
+            }
+
+            // Specific AST that emits particle
+            int p2T = obj["pond1Data3s"][11]["pond1Or2TypeMaybe"].ToInt();
+            if(p2T != 27 && p2T != 66 && p2T != 70 && p2T != 71 && p2T != 108){
+               throw;
+            }
+
+
+            p2T = obj["pond1Data3s"][4]["pond1Or2TypeMaybe"].ToInt();
+            int p2Tb = obj["pond1Data3s"][4]["mainASTIndex"].ToInt();
+            p2Tb = context.root["mainASTs"][p2Tb]["astType"].ToInt();
+            if(p2T != 0){
+               printf("%d, %d\n", p2T, p2Tb);
             }
          }else if(refFfxId == 2024){
             if(obj["pond1Data3s"].size() != 13){
