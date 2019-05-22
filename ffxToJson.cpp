@@ -31,12 +31,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    root["unk2"] = -1;
    root["ffxId"] = -1;
    root["type133s"] = json::Array();
-   root["mainASTs"] = json::Array();
-   json::JSON& type133s = root["type133s"];
-   json::JSON& mainASTs = root["mainASTs"];
+   root["templateASTs"] = json::Array();
 
    std::function<json::JSON(int)> readData3;
-   std::function<json::JSON(int, int, json::JSON*)> readAST;
+   std::function<json::JSON(int, int)> readAST;
 
    readData3 = [&](int addr) -> json::JSON{
       json::JSON data3 = json::Object();
@@ -171,33 +169,41 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          int data3Offset = dr.readInt(addr + 20);
          data3["data3"] = readData3(data3Offset);
       }else if(type == 37){
-         data3["refFfxId"] = dr.readInt(addr + 4);
+         int templateFfxId = dr.readInt(addr + 4);
+         data3["templateFfxId"] = templateFfxId;
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["mainASTIndex"] = readAST(astOffset, -37, nullptr);
+            int templateASTIndex = root["templateASTs"].size();
+            data3["templateASTIndex"] = templateASTIndex;
+            json::JSON& newAST = root["templateASTs"][templateASTIndex] = json::Object();
+            newAST = readAST(astOffset, -37);
+            char sBuffer[80];
+            sprintf(sBuffer, ", ffx = %d, index = %d", templateFfxId, templateASTIndex);
+            newAST["note1"] = newAST["note1"].ToString() + sBuffer;
+
             testFunctions.onAST(
-               root["mainASTs"][data3["mainASTIndex"].ToInt()],
+               newAST,
                {data3, root},
                TestFunctions::Type37,
-               data3["refFfxId"].ToInt()
+               data3["templateFfxId"].ToInt()
             );
          }else{
-            data3["mainASTIndex"] = -1;
+            data3["templateASTIndex"] = -1;
          }
       }else if(type == 38){
-         int pond1Or2TypeMaybe = dr.readInt(addr + 4);
-         data3["pond1Or2TypeMaybe"] = pond1Or2TypeMaybe;
+         int t38Subtype = dr.readInt(addr + 4);
+         data3["t38Subtype"] = t38Subtype;
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["mainASTIndex"] = readAST(astOffset, pond1Or2TypeMaybe, nullptr);
+            data3["ast"] = readAST(astOffset, t38Subtype);
             testFunctions.onAST(
-               root["mainASTs"][data3["mainASTIndex"].ToInt()],
+               data3["ast"],
                {data3, root},
                TestFunctions::Type38,
-               pond1Or2TypeMaybe
+               t38Subtype
             );
          }else{
-            data3["mainASTIndex"] = -1;
+            data3["ast"] = {};
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          int all = dr.readInt(addr + 4);
@@ -225,24 +231,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    };
 
    DataReader drP; // pond2
-   readAST = [&](int addr, int probablyType, json::JSON* destObjectInstead) -> int{
+   readAST = [&](int addr, int probablyType) -> json::JSON{
       int pond1Offset = dr.readInt(addr+0);
       int pond2Offset = dr.readInt(addr+16);
       int pond3Offset = dr.readInt(addr+20);
 
-      int mainAstIndex = -1;
-      if(destObjectInstead == nullptr){
-         mainAstIndex = mainASTs.size();
-         json::JSON placeholder = {};
-         mainASTs.append(std::move(placeholder));
-      }
-
       json::JSON ast = json::Object();
-      if(destObjectInstead){
-         sprintf(sBuffer, "offset = %d", addr);
-      }else{
-         sprintf(sBuffer, "mainAstIndex = %d, offset = %d", mainAstIndex, addr);
-      }
+      sprintf(sBuffer, "offset = %d", addr);
       ast["note1"] = sBuffer;
       ast["note2"] = "";
       if(pond1Offset){
@@ -276,7 +271,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             int type = dr.readInt(pond3Offset + 0);
             pond3["pond3Type"] = type;
             if(type == 0){
-               pond3["astCount"] = dr.readInt(pond3Offset + 4);
+               pond3["astCountMaybe"] = dr.readInt(pond3Offset + 4);
             }else if(type == 1){
                pond3["unk1"] = dr.readInt(pond3Offset + 4);
                pond3["unk2"] = dr.readInt(pond3Offset + 8);
@@ -294,7 +289,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                pond3["unk2"] = dr.readFloat(pond3Offset + 8);
                pond3["unk3"] = dr.readInt(pond3Offset + 12);
                pond3["unk4"] = dr.readFloat(pond3Offset + 16);
-               pond3["unk5"] = dr.readInt(pond3Offset + 20);
+               pond3["unk5"] = dr.readByte(pond3Offset + 20);
+               pond3["unk6"] = dr.readByte(pond3Offset + 21);
             }else if(type == 3){
                pond3["unk1"] = dr.readFloat(pond3Offset + 4);
                pond3["unk2"] = dr.readInt(pond3Offset + 8);
@@ -749,13 +745,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          testFunctions.onPond2(pond2, {ast, root});
       }
 
-      if(destObjectInstead){
-         *destObjectInstead = std::move(ast);
-         return -1;
-      }else{
-         mainASTs[mainAstIndex] = std::move(ast);
-         return mainAstIndex;
-      }
+      return std::move(ast);
    };
 
 
@@ -808,9 +798,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       t133["always8Or10"] = dr.readInt(addr + 9 * 4);
       t133["preAST1"] = {};
       t133["preAST2"] = {};
-      readAST(addr + 10 * 4, -1, &(t133["preAST1"]));
+      t133["preAST1"] = readAST(addr + 10 * 4, -1);
       testFunctions.onAST(t133["preAST1"], {root, root}, TestFunctions::Pre1, t133["always8Or10"].ToInt());
-      readAST(addr + 16 * 4, -1, &(t133["preAST2"]));
+      t133["preAST2"] = readAST(addr + 16 * 4, -1);
       testFunctions.onAST(t133["preAST2"], {root, root}, TestFunctions::Pre2, t133["always8Or10"].ToInt());
 
       t133["houses"] = json::Array();
@@ -844,17 +834,17 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int b = 0; b < blossomCount; ++b){
             int blossomAndAstSize = 4 + 6 * 4;
 
-            int probablyType = dr.readInt(blossomOffset + b * blossomAndAstSize + 0);
+            int blossomType = dr.readInt(blossomOffset + b * blossomAndAstSize + 0);
             json::JSON entry = {
-               "probablyType", probablyType,
+               "blossomType", blossomType,
                "blossomAST", {}
             };
-            readAST(blossomOffset + b * blossomAndAstSize + 4, probablyType, &(entry["blossomAST"]));
+            entry["blossomAST"] = readAST(blossomOffset + b * blossomAndAstSize + 4, blossomType);
             testFunctions.onAST(
                entry["blossomAST"],
                {entry, root},
                TestFunctions::Blossom,
-               probablyType
+               blossomType
             );
 
             blossoms.append(std::move(entry));
@@ -863,7 +853,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          t133["houses"].append(std::move(house));
       }
 
-      type133s.append(std::move(t133));
+      root["type133s"].append(std::move(t133));
    }
 
    testFunctions.onRoot(root, {root, root});

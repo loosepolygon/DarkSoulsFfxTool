@@ -42,7 +42,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    wchar_t wBuffer[200];
 
    std::function<void(DataWriter&, DataWriter*, json::JSON&)> writeData3;
-   std::function<void(int)> writeMainAST;
+   std::function<void(json::JSON&)> writeMainAST;
 
    writeData3 = [&](DataWriter& dw, DataWriter* dwPond1Array, json::JSON& data3) -> void{
       if(&dw == &dwLinkData3s){
@@ -173,30 +173,30 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          dw.write<int>(floatCountA);
       }else if(type == 37){
-         dw.write<int>(data3["refFfxId"].ToInt());
+         dw.write<int>(data3["templateFfxId"].ToInt());
 
-         int mainASTIndex = data3["mainASTIndex"].ToInt();
-         if(mainASTIndex == -1){
+         int templateASTIndex = data3["templateASTIndex"].ToInt();
+         if(templateASTIndex == -1){
             dw.write<int>(0);
             dw.write<int>(0);
          }else{
-            dw.writeOffsetToFix(dwMainASTs, mainASTIndex * sizeof(int) * 6);
+            dw.writeOffsetToFix(dwMainASTs, dwMainASTs.bytes.size());
             dw.write<int>(0);
 
-            writeMainAST(mainASTIndex);
+            writeMainAST(root["templateASTs"][templateASTIndex]);
          }
       }else if(type == 38){
-         dw.write<int>(data3["pond1Or2TypeMaybe"].ToInt());
+         dw.write<int>(data3["t38Subtype"].ToInt());
 
-         int mainASTIndex = data3["mainASTIndex"].ToInt();
-         if(mainASTIndex == -1){
+         json::JSON& ast = data3["ast"];
+         if(ast.size() == 0){
             dw.write<int>(0);
             dw.write<int>(0);
          }else{
-            dw.writeOffsetToFix(dwMainASTs, mainASTIndex * sizeof(int) * 6);
+            dw.writeOffsetToFix(dwMainASTs, dwMainASTs.bytes.size());
             dw.write<int>(0);
 
-            writeMainAST(mainASTIndex);
+            writeMainAST(ast);
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          dw.write<short>(data3["unk1"].ToInt());
@@ -262,7 +262,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             }
 
             if(type == 0){
-               dwSubDataAndPond3s.write<int>(pond3["astCount"].ToInt());
+               dwSubDataAndPond3s.write<int>(pond3["astCountMaybe"].ToInt());
             }else if(type == 1){
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk1"].ToInt());
                dwType1Pond3AndSomeSubdata.write<int>(pond3["unk2"].ToInt());
@@ -280,7 +280,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
                dwSubDataAndPond3s.write<float>(pond3["unk2"].ToFloat());
                dwSubDataAndPond3s.write<int>(pond3["unk3"].ToInt());
                dwSubDataAndPond3s.write<float>(pond3["unk4"].ToFloat());
-               dwSubDataAndPond3s.write<int>(pond3["unk5"].ToInt());
+               dwSubDataAndPond3s.write<byte>(pond3["unk5"].ToInt());
+               dwSubDataAndPond3s.write<byte>(pond3["unk6"].ToInt());
+               dwSubDataAndPond3s.write<short>(0);
             }else if(type == 3){
                dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
                dwSubDataAndPond3s.write<int>(pond3["unk2"].ToInt());
@@ -693,16 +695,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       writeASTAt(dw, dw.bytes.size(), ast);
    };
 
-   writeMainAST = [&](int index) -> void{
-      json::JSON& ast = root["mainASTs"][index];
-
-      if(ast["_written"].ToBool() == true){
-         return;
-      }else{
-         ast["_written"] = true;
-      }
-
-      writeASTAt(dwMainASTs, index * sizeof(int) * 6, ast);
+   writeMainAST = [&](json::JSON& ast) -> void{
+      writeASTAt(dwMainASTs, dwMainASTs.bytes.size(), ast);
    };
 
 
@@ -782,7 +776,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dwHouses.write<int>(blossomCount);
 
          for(json::JSON& blossom : house["blossoms"].ArrayRange()){
-            dwBlossoms.write<int>(blossom["probablyType"].ToInt());
+            dwBlossoms.write<int>(blossom["blossomType"].ToInt());
             writeAST(dwBlossoms, blossom["blossomAST"]);
          }
       }

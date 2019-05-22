@@ -45,6 +45,12 @@ struct DataReader{
       return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
 
+   int readShort(int addr){
+      std::vector<bool>& br = this->bytesRead;
+      br[addr+1] = br[addr+0] = true;
+      return *reinterpret_cast<short*>(&this->bytes[addr]);
+   }
+
    byte readByte(int addr){
       std::vector<bool>& br = this->bytesRead;
       br[addr] = true;
