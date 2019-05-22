@@ -53,14 +53,14 @@ namespace {
        buffer.resize(textSize);
        float reValue = std::stof(buffer);
        if(reValue == floatValue){
-          return std::move(buffer);
+          goto trimZeroes;
        }
 
        textSize = snprintf(&buffer[0], buffer.size(), "%g", floatValue);
        buffer.resize(textSize);
        reValue = std::stof(buffer);
        if(reValue == floatValue){
-          return std::move(buffer);
+          goto trimZeroes;
        }
 
        for(int n = 0; n < 6; ++n){
@@ -75,11 +75,22 @@ namespace {
              while(buffer[textSize - 1] == '0' && buffer[textSize - 2] != '.'){
                 --textSize;
              };
-             return std::move(buffer);
+             goto trimZeroes;
           }
        }
 
        throw;
+
+trimZeroes:
+       for(int n = buffer.size(); n --> 0;){
+          char currentChar = buffer.back();
+          char previousChar = buffer[buffer.size() - 2];
+          if(currentChar == '0' && previousChar != '.'){
+             buffer.resize(buffer.size() - 1);
+          }
+       }
+
+       return std::move(buffer);
     }
 }
 
