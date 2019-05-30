@@ -26,7 +26,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
    json::JSON root;
    root["jsonVersion"] = ::jsonVersion;
-   root["ffxVersion"] = -1;
+   root["gameVersion"] = "";
    root["unk1"] = -1;
    root["unk2"] = -1;
    root["ffxId"] = -1;
@@ -761,7 +761,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    int unk1 = dr.readInt(24);
    int unk2 = dr.readInt(28);
 
-   root["ffxVersion"] = version;
+   root["gameVersion"] = dataStartAfterHeader == 32 ? "PTD" : "DSR";
    root["unk1"] = unk1;
    root["unk2"] = unk2;
 

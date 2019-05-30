@@ -1,7 +1,7 @@
 #include "header.hpp"
 #include "md5.hpp"
 
-int jsonVersion = 2;
+int jsonVersion = 4;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
@@ -654,7 +654,13 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
 }
 
 void testing(){
-   std::wstring allFfxDir = L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/";
+   bool useRemastered = false;
+   std::wstring allFfxDir = (useRemastered ?
+      L"C:/Program Files (x86)/Steam/steamapps/common/DARK SOULS REMASTERED/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_x64/" :
+      L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/"
+   );
+   std::wstring jsonDir = useRemastered ? L"json64/" : L"json/";
+   std::wstring rebuiltDir = useRemastered ? L"rebuilt64/" : L"rebuilt/";
 
 
    //TestFunctions testFunctions;
@@ -667,8 +673,8 @@ void testing(){
    //   ffxToJson(ffxPath, jsonPath, testFunctions);
    //}
 
-   //importEveryFfx(allFfxDir, L"json/");
-   importEveryFfxAndResearch(allFfxDir, L"json/");
+   importEveryFfx(allFfxDir, jsonDir);
+   //importEveryFfxAndResearch(allFfxDir, jsonDir);
 
 
    //for(int ffxId : {2125}){
@@ -680,7 +686,7 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   //exportEveryFfxAndTest(allFfxDir, L"json/", L"rebuilt/");
+   exportEveryFfxAndTest(allFfxDir, jsonDir, rebuiltDir);
 }
 
 void mainProgram(int argCount, wchar_t** args){

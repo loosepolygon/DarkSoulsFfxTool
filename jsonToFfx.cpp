@@ -706,7 +706,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    dwMain.write('\0');
 
    dwMain.write<short>(0);
-   dwMain.write<short>(root["ffxVersion"].ToInt());
+   dwMain.write<short>(1);
    offsetList.push_back(dwMain.bytes.size());
    dwMain.write<int>(32); // dataStartAfterHeader
    dwMain.write<int>(-1); // data2Start
