@@ -33,6 +33,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    root["type133s"] = json::Array();
    root["templateASTs"] = json::Array();
 
+   int lastPond1Data3Offset = 0;
+
    std::function<json::JSON(int)> readData3;
    std::function<json::JSON(int, int)> readAST;
 
@@ -190,6 +192,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }else{
             data3["templateASTIndex"] = -1;
          }
+
+         dr.readInt(addr + 12);
       }else if(type == 38){
          int t38Subtype = dr.readInt(addr + 4);
          data3["t38Subtype"] = t38Subtype;
@@ -205,6 +209,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }else{
             data3["ast"] = {};
          }
+
+         dr.readInt(addr + 12);
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          int all = dr.readInt(addr + 4);
          short* sp = reinterpret_cast<short*>(&all);
@@ -233,6 +239,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    DataReader drP; // pond2
    readAST = [&](int addr, int probablyType) -> json::JSON{
       int pond1Offset = dr.readInt(addr+0);
+      int data3Count = dr.readInt(addr+4);
+      int data3Count2 = dr.readInt(addr+8);
+      bool flag1 = (bool)dr.readByte(addr + 12);
+      bool flag2 = (bool)dr.readByte(addr + 13);
+      bool flag3 = (bool)dr.readByte(addr + 14);
+      dr.readByte(addr + 15);
       int pond2Offset = dr.readInt(addr+16);
       int pond3Offset = dr.readInt(addr+20);
 
@@ -251,17 +263,21 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          sprintf(sBuffer, "AST Type %d: %s", 0, "Empty");
       }
       ast["note2"] = sBuffer;
-      ast["flag1"] = (bool)dr.readByte(addr + 12);
-      ast["flag2"] = (bool)dr.readByte(addr + 13);
-      ast["flag3"] = (bool)dr.readByte(addr + 14);
+      ast["flag1"] = flag1;
+      ast["flag2"] = flag2;
+      ast["flag3"] = flag3;
       
 
       if(pond1Offset){
          json::JSON& data3s = ast["pond1Data3s"] = json::Array();
-         int data3Count = dr.readInt(addr+4);
          for(int n = 0; n < data3Count; ++n){
             int offsetToData3 = dr.readInt(pond1Offset + n * 4);
             data3s.append(std::move(readData3(offsetToData3)));
+
+            // For checking all bytes are read
+            if(pond1Offset + n * 4 > lastPond1Data3Offset){
+               lastPond1Data3Offset = pond1Offset + n * 4;
+            }
          }
 
          testFunctions.onPond1(data3s, {ast, root});
@@ -291,6 +307,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                pond3["unk4"] = dr.readFloat(pond3Offset + 16);
                pond3["unk5"] = dr.readByte(pond3Offset + 20);
                pond3["unk6"] = dr.readByte(pond3Offset + 21);
+               dr.readShort(pond3Offset + 22);
             }else if(type == 3){
                pond3["unk1"] = dr.readFloat(pond3Offset + 4);
                pond3["unk2"] = dr.readInt(pond3Offset + 8);
@@ -467,7 +484,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          int type = dr.readInt(pond2Offset + 0);
          pond2["pond2Type"] = type;
          pond2["note"] = "";
-         int totalSize = dr.readInt(pond2Offset + 4);
+         // Round to padding
+         int totalSize = (dr.readInt(pond2Offset + 4) + 15) / 16 * 16;
          int preDataCount = dr.readInt(pond2Offset + 8);
          int offsetToPreDataNumbers = dr.readInt(pond2Offset + 12);
          int offsetToPreDataSubtypes = dr.readInt(pond2Offset + 16);
@@ -479,7 +497,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }
          drP.bytesRead.resize(0);
          drP.bytesRead.resize(drP.bytes.size());
-
 
          // Pre data
          json::JSON& preData = pond2["preData"] = json::Array();
@@ -750,7 +767,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
 
    char sig[4];
-   memcpy(sig, &dr.bytes[0], 4);
+   int sigInt = dr.readInt(0);
+   memcpy(sig, &sigInt, 4);
    if(memcmp("FXR", sig, 4) != 0){
       ffxReadError(ffxPath, L"Not an ffx file");
    }
@@ -758,6 +776,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    int versionRaw = dr.readInt(4);
    int version = (int)((short*)(&versionRaw))[1];
    int dataStartAfterHeader = dr.readInt(8);
+   int data2Start = dr.readInt(12);
+   int data2Count = dr.readInt(16);
+   int data3Count = dr.readInt(20);
    int unk1 = dr.readInt(24);
    int unk2 = dr.readInt(28);
 
@@ -775,6 +796,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       type133Count = 1;
    }else if(firstData3Type == 134){
       ffxId = dr.readInt(dataStartAfterHeader + 4); 
+      dr.readInt(dataStartAfterHeader + 8); 
       offsetToType133Offsets = dr.readInt(dataStartAfterHeader + 12);
       type133Count = dr.readInt(dataStartAfterHeader + 16);
    }else{
@@ -791,6 +813,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       }
 
       root["ffxId"] = dr.readInt(addr + 4);
+
+      for(int n = 0; n < 7; ++n){
+         dr.readInt(addr + 8 + n * 4);
+      }
 
       json::JSON t133 = json::Object();
       sprintf(sBuffer, "Type133 index = %d", n);
@@ -854,6 +880,43 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       }
 
       root["type133s"].append(std::move(t133));
+   }
+
+   // Mark some padding as read
+   lastPond1Data3Offset += 3;
+   while((lastPond1Data3Offset - 1) % 16 != 0){
+      lastPond1Data3Offset += 1;
+      dr.readByte(lastPond1Data3Offset);
+   }
+
+   // Mark padding before data2/data3 pointers as read
+   {
+      int lastByteRead = data2Start - 1;
+      while(dr.bytesRead[lastByteRead] == false){
+         lastByteRead--;
+      }
+
+      while((lastByteRead + 1) % 16 != 0){
+         lastByteRead += 1;
+         dr.readByte(lastByteRead);
+      }
+   }
+
+   // Mark data2 and data3 pointers as read
+   {
+      int offset = data2Start;
+      for (int n = 0; n < data2Count + data3Count; ++n){
+         dr.readInt(offset);
+         offset += 4;
+      }
+   }
+
+   // Test if all bytes are read
+   for(size_t b = 0; b < dr.bytesRead.size(); ++b){
+      if(dr.bytesRead[b] == false){
+         printf("Byte not read at 0x%X (%d)\n", b, b);
+         throw;
+      }
    }
 
    testFunctions.onRoot(root, {root, root});
