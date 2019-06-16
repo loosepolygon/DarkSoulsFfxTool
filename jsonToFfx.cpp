@@ -816,11 +816,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       &dwBlossoms,
       &dwSubDataAndPond3s,
       &dwData3s,
-      &dwLinkData3s,
-      &dwType1Pond3AndSomeSubdata
+      &dwLinkData3s
    };
-   dataWriters.insert(dataWriters.begin() + 7, dwPond1Arrays.begin(), dwPond1Arrays.end());
-   dataWriters.insert(dataWriters.end() - 0, dwPond2Stuff.begin(), dwPond2Stuff.end());
+   dataWriters.insert(dataWriters.end(), dwPond1Arrays.begin(), dwPond1Arrays.end());
+   dataWriters.push_back(&dwType1Pond3AndSomeSubdata);
+   dataWriters.insert(dataWriters.end(), dwPond2Stuff.begin(), dwPond2Stuff.end());
    dataWriters.back()->padToMultiple = 16;
    dwMain.merge(dataWriters, offsetList);
 
