@@ -31,29 +31,56 @@ int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
 
 struct DataReader{
    std::vector<byte> bytes;
-   std::vector<bool> bytesRead;
+   std::vector<byte> bytesRead;
+   int bpOnRead = -1;
+
+   void bpTest(int addr){
+      if(addr == this->bpOnRead){
+         int bp=42;
+      }
+   }
 
    int readInt(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      return *reinterpret_cast<int*>(&this->bytes[addr]);
+   }
+
+   int readLong(int addr){
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
+      return *reinterpret_cast<int*>(&this->bytes[addr]);
+   }
+
+   int readBadLong(int addr){
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
    float readFloat(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr+3] = br[addr+2] = br[addr+1] = br[addr+0] = true;
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
 
    int readShort(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr+1] = br[addr+0] = true;
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1];
       return *reinterpret_cast<short*>(&this->bytes[addr]);
    }
 
    byte readByte(int addr){
-      std::vector<bool>& br = this->bytesRead;
-      br[addr] = true;
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr];
       return *reinterpret_cast<byte*>(&this->bytes[addr]);
    }
 };

@@ -2,6 +2,7 @@
 
 void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const TestFunctions& testFunctions){
    DataReader dr;
+   //dr.bpOnRead = 4;
    {
       FILE* file = _wfopen(ffxPath.c_str(), L"rb");
       if(file == NULL) {
@@ -805,14 +806,14 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
    // Read array of Type133s
    for(int n = 0; n < type133Count; ++n){
-      int addr = dr.readInt(offsetToType133Offsets + n * 4);
+      int addr = firstData3Type == 133 ? dataStartAfterHeader : dr.readInt(offsetToType133Offsets + n * 4);
 
-      int type = dr.readInt(addr);
+      int type = firstData3Type == 133 ? 133 : dr.readInt(addr);
       if(type != 133){
          ffxReadError(ffxPath, L"Type is not 133");
       }
 
-      root["ffxId"] = dr.readInt(addr + 4);
+      root["ffxId"] = firstData3Type == 133 ? ffxId : dr.readInt(addr + 4);
 
       for(int n = 0; n < 7; ++n){
          dr.readInt(addr + 8 + n * 4);
@@ -883,10 +884,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    }
 
    // Mark some padding as read
-   lastPond1Data3Offset += 3;
-   while((lastPond1Data3Offset - 1) % 16 != 0){
-      lastPond1Data3Offset += 1;
-      dr.readByte(lastPond1Data3Offset);
+   if(lastPond1Data3Offset != 0){
+      lastPond1Data3Offset += 3;
+      while((lastPond1Data3Offset + 1) % 16 != 0){
+         lastPond1Data3Offset += 1;
+         dr.readByte(lastPond1Data3Offset);
+      }
    }
 
    // Mark padding before data2/data3 pointers as read
@@ -911,10 +914,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       }
    }
 
-   // Test if all bytes are read
+   // Test if all bytes are read exactly once
    for(size_t b = 0; b < dr.bytesRead.size(); ++b){
-      if(dr.bytesRead[b] == false){
+      if(dr.bytesRead[b] == 0){
          printf("Byte not read at 0x%X (%d)\n", b, b);
+         throw;
+      }else if(dr.bytesRead[b] > 1){
+         printf("Byte read %d times at 0x%X (%d)\n", dr.bytesRead[b], b, b);
          throw;
       }
    }
