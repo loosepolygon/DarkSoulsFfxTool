@@ -37,7 +37,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    int lastPond1Data3Offset = 0;
 
    std::function<json::JSON(int)> readData3;
-   std::function<json::JSON(int, int)> readAST;
+   std::function<json::JSON(int)> readAST;
 
    readData3 = [&](int addr) -> json::JSON{
       json::JSON data3 = json::Object();
@@ -179,7 +179,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             int templateASTIndex = root["templateASTs"].size();
             data3["templateASTIndex"] = templateASTIndex;
             json::JSON& newAST = root["templateASTs"][templateASTIndex] = json::Object();
-            newAST = readAST(astOffset, -37);
+            newAST = readAST(astOffset);
             char sBuffer[80];
             sprintf(sBuffer, ", ffx = %d, index = %d", templateFfxId, templateASTIndex);
             newAST["note1"] = newAST["note1"].ToString() + sBuffer;
@@ -200,7 +200,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          data3["t38Subtype"] = t38Subtype;
          int astOffset = dr.readInt(addr + 8);
          if(astOffset){
-            data3["ast"] = readAST(astOffset, t38Subtype);
+            data3["ast"] = readAST(astOffset);
             testFunctions.onAST(
                data3["ast"],
                {data3, root},
@@ -238,19 +238,21 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    };
 
    DataReader drP; // pond2
-   readAST = [&](int addr, int probablyType) -> json::JSON{
-      int pond1Offset = dr.readInt(addr+0);
-      int data3Count = dr.readInt(addr+4);
-      int data3Count2 = dr.readInt(addr+8);
-      bool flag1 = (bool)dr.readByte(addr + 12);
-      bool flag2 = (bool)dr.readByte(addr + 13);
-      bool flag3 = (bool)dr.readByte(addr + 14);
-      dr.readByte(addr + 15);
-      int pond2Offset = dr.readInt(addr+16);
-      int pond3Offset = dr.readInt(addr+20);
+   readAST = [&](int addr) -> json::JSON{
+      int startAddress = addr == -1 ? dr.marker : addr;
+
+      int pond1Offset = dr.readInt(startAddress);
+      int data3Count = dr.readInt();
+      int data3Count2 = dr.readInt();
+      bool flag1 = (bool)dr.readByte();
+      bool flag2 = (bool)dr.readByte();
+      bool flag3 = (bool)dr.readByte();
+      dr.readByte();
+      int pond2Offset = dr.readInt();
+      int pond3Offset = dr.readInt();
 
       json::JSON ast = json::Object();
-      sprintf(sBuffer, "offset = %d", addr);
+      sprintf(sBuffer, "offset = %d", startAddress);
       ast["note1"] = sBuffer;
       ast["note2"] = "";
       if(pond1Offset){
@@ -768,38 +770,43 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
 
    char sig[4];
-   int sigInt = dr.readInt(0);
+   int sigInt = dr.readInt();
    memcpy(sig, &sigInt, 4);
    if(memcmp("FXR", sig, 4) != 0){
       ffxReadError(ffxPath, L"Not an ffx file");
    }
 
-   int versionRaw = dr.readInt(4);
+   int versionRaw = dr.readInt();
    int version = (int)((short*)(&versionRaw))[1];
-   int dataStartAfterHeader = dr.readInt(8);
-   int data2Start = dr.readInt(12);
-   int data2Count = dr.readInt(16);
-   int data3Count = dr.readInt(20);
-   int unk1 = dr.readInt(24);
-   int unk2 = dr.readInt(28);
+   int dataStartAfterHeader = dr.readInt();
+   int data2Start = dr.readInt();
+   int data2Count = dr.readInt();
+   int data3Count = dr.readInt();
+   int unk1 = dr.readInt();
+   int unk2 = dr.readInt();
+   dr.readPadding(16);
 
-   root["gameVersion"] = dataStartAfterHeader == 32 ? "PTD" : "DSR";
+
+   bool isPTD = dataStartAfterHeader == 32;
+   root["gameVersion"] = isPTD ? "PTD" : "DSR";
    root["unk1"] = unk1;
    root["unk2"] = unk2;
+
+   int astSize = isPTD ? 6*4 : 2*4 + 4*8;
 
    int firstData3Type = dr.readInt(dataStartAfterHeader);
    int offsetToType133Offsets;
    int type133Count;
    int ffxId;
    if(firstData3Type == 133){
-      ffxId = dr.readInt(dataStartAfterHeader + 4); 
+      ffxId = dr.readInt(); 
       offsetToType133Offsets = 8;
       type133Count = 1;
    }else if(firstData3Type == 134){
-      ffxId = dr.readInt(dataStartAfterHeader + 4); 
-      dr.readInt(dataStartAfterHeader + 8); 
-      offsetToType133Offsets = dr.readInt(dataStartAfterHeader + 12);
-      type133Count = dr.readInt(dataStartAfterHeader + 16);
+      ffxId = dr.readInt(); 
+      dr.readInt(); 
+      offsetToType133Offsets = dr.readInt();
+      type133Count = dr.readInt();
    }else{
       ffxReadError(ffxPath, L"First data3 is not 133 or 134");
    }
@@ -813,44 +820,51 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          ffxReadError(ffxPath, L"Type is not 133");
       }
 
-      root["ffxId"] = firstData3Type == 133 ? ffxId : dr.readInt(addr + 4);
+      root["ffxId"] = firstData3Type == 133 ? ffxId : dr.readInt();
 
       for(int n = 0; n < 7; ++n){
-         dr.readInt(addr + 8 + n * 4);
+         dr.readInt();
       }
 
       json::JSON t133 = json::Object();
       sprintf(sBuffer, "Type133 index = %d", n);
       t133["note"] = sBuffer;
-      t133["always8Or10"] = dr.readInt(addr + 9 * 4);
+      t133["always8Or10"] = dr.readInt();
+      int oldMarker = dr.marker;
       t133["preAST1"] = {};
       t133["preAST2"] = {};
-      t133["preAST1"] = readAST(addr + 10 * 4, -1);
+      t133["preAST1"] = readAST(-1);
       testFunctions.onAST(t133["preAST1"], {root, root}, TestFunctions::Pre1, t133["always8Or10"].ToInt());
-      t133["preAST2"] = readAST(addr + 16 * 4, -1);
+      dr.marker = oldMarker + astSize * 1;
+      t133["preAST2"] = readAST(-1);
       testFunctions.onAST(t133["preAST2"], {root, root}, TestFunctions::Pre2, t133["always8Or10"].ToInt());
+      dr.marker = oldMarker + astSize * 2;
 
       t133["houses"] = json::Array();
-      int housesOffset = dr.readInt(addr + 22 * 4);
-      int houseCount = dr.readInt(addr + 23 * 4);
+      int housesOffset = dr.readInt();
+      int houseCount = dr.readInt();
+      int houseOffset = housesOffset;
       for(int h = 0; h < houseCount; ++h){
-         int houseOffset = housesOffset + h * 4 * 4;
-         int linksOffset = dr.readInt(houseOffset + 0);
-         int blossomOffset = dr.readInt(houseOffset + 4);
-         int linkCount = dr.readInt(houseOffset + 8);
-         int blossomCount = dr.readInt(houseOffset + 12);
+         int linksOffset = dr.readInt(houseOffset);
+         int blossomOffset = dr.readInt();
+         int linkCount = dr.readInt();
+         int blossomCount = dr.readInt();
+         int houseSize = dr.marker - houseOffset;
+         houseOffset = dr.marker;
 
          json::JSON house = json::Object();
          sprintf(sBuffer, "houseIndex = %d", h);
          house["note"] = sBuffer;
 
          json::JSON& links = house["links"] = json::Array();
+         int linkOffset = linksOffset;
          for(int l = 0; l < linkCount; ++l){
-            int linkedHouseOffset = dr.readInt(linksOffset + l * 8 + 0);
-            int data3Offset = dr.readInt(linksOffset + l * 8 + 4);
+            int linkedHouseOffset = dr.readInt(linkOffset);
+            int data3Offset = dr.readInt();
+            linkOffset = dr.marker;
 
             json::JSON entry = {
-               "linkedHouseIndex", (linkedHouseOffset - housesOffset) / (4 * 4),
+               "linkedHouseIndex", (linkedHouseOffset - housesOffset) / houseSize,
                "data3", readData3(data3Offset)
             };
 
@@ -859,20 +873,20 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
          json::JSON& blossoms = house["blossoms"] = json::Array();
          for(int b = 0; b < blossomCount; ++b){
-            int blossomAndAstSize = 4 + 6 * 4;
-
-            int blossomType = dr.readInt(blossomOffset + b * blossomAndAstSize + 0);
+            int blossomType = dr.readInt(blossomOffset);
             json::JSON entry = {
                "blossomType", blossomType,
                "blossomAST", {}
             };
-            entry["blossomAST"] = readAST(blossomOffset + b * blossomAndAstSize + 4, blossomType);
+            blossomOffset = dr.marker;
+            entry["blossomAST"] = readAST(blossomOffset);
             testFunctions.onAST(
                entry["blossomAST"],
                {entry, root},
                TestFunctions::Blossom,
                blossomType
             );
+            blossomOffset += astSize;
 
             blossoms.append(std::move(entry));
          }
@@ -885,11 +899,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
    // Mark some padding as read
    if(lastPond1Data3Offset != 0){
-      lastPond1Data3Offset += 3;
-      while((lastPond1Data3Offset + 1) % 16 != 0){
-         lastPond1Data3Offset += 1;
-         dr.readByte(lastPond1Data3Offset);
-      }
+      dr.readPadding(16, lastPond1Data3Offset + 4);
    }
 
    // Mark padding before data2/data3 pointers as read
@@ -899,10 +909,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          lastByteRead--;
       }
 
-      while((lastByteRead + 1) % 16 != 0){
-         lastByteRead += 1;
-         dr.readByte(lastByteRead);
-      }
+      dr.readPadding(16, lastByteRead + 1);
    }
 
    // Mark data2 and data3 pointers as read

@@ -33,6 +33,7 @@ struct DataReader{
    std::vector<byte> bytes;
    std::vector<byte> bytesRead;
    int bpOnRead = -1;
+   int marker = 0;
 
    void bpTest(int addr){
       if(addr == this->bpOnRead){
@@ -40,48 +41,72 @@ struct DataReader{
       }
    }
 
-   int readInt(int addr){
+   int readInt(int addr = -1){
+      if(addr == -1) addr = this->marker;
+      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      this->marker += 4;
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
-   int readLong(int addr){
+   int readLong(int addr = -1){
+      if(addr == -1) addr = this->marker;
+      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
+      this->marker += 8;
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
-   int readBadLong(int addr){
+   int readBadLong(int addr = -1){
+      if(addr == -1) addr = this->marker;
+      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
+      this->marker += 8;
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
-   float readFloat(int addr){
+   float readFloat(int addr = -1){
+      if(addr == -1) addr = this->marker;
+      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      this->marker += 4;
       return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
 
-   int readShort(int addr){
+   int readShort(int addr = -1){
+      if(addr == -1) addr = this->marker;
+      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1];
+      this->marker += 2;
       return *reinterpret_cast<short*>(&this->bytes[addr]);
    }
 
-   byte readByte(int addr){
+   byte readByte(int addr = -1){
+      if(addr == -1) addr = this->marker;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr];
+      this->marker += 1;
       return *reinterpret_cast<byte*>(&this->bytes[addr]);
+   }
+
+   void readPadding(int roundAmount, int addr = -1){
+      if(addr != -1) this->marker = addr;
+      while(this->marker % 16 != 0){
+         this->readByte();
+      }
    }
 };
 
