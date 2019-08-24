@@ -34,6 +34,8 @@ struct DataReader{
    std::vector<byte> bytesRead;
    int bpOnRead = -1;
    int marker = 0;
+   bool isRemaster = false;
+   std::wstring path;
 
    void bpTest(int addr){
       if(addr == this->bpOnRead){
@@ -43,53 +45,76 @@ struct DataReader{
 
    int readInt(int addr = -1){
       if(addr == -1) addr = this->marker;
-      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
-      this->marker += 4;
+      this->marker = addr + 4;
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
    int readLong(int addr = -1){
+      if(!this->isRemaster) return this->readInt(addr);
+
       if(addr == -1) addr = this->marker;
-      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
-      this->marker += 8;
+      this->marker = addr + 8;
+      if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0){
+         ffxReadError(this->path, L"readLong's second half incorrect");
+         throw;
+      }
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
    int readBadLong(int addr = -1){
+      if(!this->isRemaster) return this->readInt(addr);
+
       if(addr == -1) addr = this->marker;
-      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
-      this->marker += 8;
+      this->marker = addr + 8;
+      if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0xcdcdcdcd){
+         ffxReadError(this->path, L"readBadLong's second half incorrect");
+         throw;
+      }
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
 
    float readFloat(int addr = -1){
       if(addr == -1) addr = this->marker;
-      this->marker = addr;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
-      this->marker += 4;
+      this->marker = addr + 4;
       return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
 
-   int readShort(int addr = -1){
+   float readBadFloat(int addr = -1){
+      if(!this->isRemaster) return this->readFloat(addr);
+
       if(addr == -1) addr = this->marker;
-      this->marker = addr;
+      this->bpTest(addr);
+      std::vector<byte>& br = this->bytesRead;
+      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
+      ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
+      this->marker = addr + 8;
+      if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0xcdcdcdcd){
+         ffxReadError(this->path, L"readBadFloat's second half incorrect");
+         throw;
+      }
+      return *reinterpret_cast<float*>(&this->bytes[addr]);
+   }
+
+   short readShort(int addr = -1){
+      if(addr == -1) addr = this->marker;
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1];
-      this->marker += 2;
+      this->marker = addr + 2;
       return *reinterpret_cast<short*>(&this->bytes[addr]);
    }
 
@@ -98,7 +123,7 @@ struct DataReader{
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr];
-      this->marker += 1;
+      this->marker = addr + 1;
       return *reinterpret_cast<byte*>(&this->bytes[addr]);
    }
 
