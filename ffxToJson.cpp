@@ -110,9 +110,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          data3["unk1"] = unk1;
          data3["unk2"] = unk2;
       }else if(type == 11 || type == 12){
-         int offsetA = dr.readInt();
-         int offsetB = dr.readInt();
-         int count = dr.readInt();
+         int offsetA = dr.readLong();
+         int offsetB = dr.readLong();
+         int count = dr.readBadLong();
 
          data3["note"] = "counts must match";
          data3["floatsA"] = json::Array();
@@ -121,7 +121,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4)); // FIX
+            floatsA.append(dr.readFloat(offsetA + n * 4));
             floatsB.append(dr.readFloat(offsetB + n * 4));
          }
       }else if(type == 13 || type == 14){
@@ -547,17 +547,30 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readFloat();
             readZero();
-            readZero();
+            readFloat();
+            if(dr.isRemaster) readZero(); // ???
             readInt("texId");
             readInt();
             readZero();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(10);
             readInt();
             readInt();
             readInt();
             readFloat();
+
+            if(dr.isRemaster){
+               readSubtypes(5);
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 28){
             pond2["note"] = "Pond2 type 28: initial speed";
+            // Are these XYZ?
             readSubtype("transverseSpeed");
             readSubtype();
             readSubtype("forwardSpeed");
@@ -699,13 +712,15 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readFloat();
             readFloat();
-            readLong(); // long?
+            readInt();
             readFloat();
+            if(dr.isRemaster) readZero(); // padding...? but PTD has no padding before texId
             readInt("texId");
             readZero();
-            readLong(); // long?
             readInt();
             readInt();
+            readInt();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(10);
             readInt();
             readInt();
@@ -766,7 +781,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readLong();
             readSubtypes(1);
          }else if(type == 107){
-            readZero();
+            readFloat();
             readZero();
             readInt("texId");
             readInt();
@@ -879,7 +894,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
    // Read array of Type133s
    for(int n = 0; n < type133Count; ++n){
-      int addr = firstData3Type == 133 ? dataStartAfterHeader : dr.readLong(offsetToType133Offsets + n * 4);
+      int addr = firstData3Type == 133 ? dataStartAfterHeader : dr.readLong(offsetToType133Offsets + n * longSize);
 
       int type = firstData3Type == 133 ? 133 : dr.readLong(addr);
       if(type != 133){
