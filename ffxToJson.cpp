@@ -221,15 +221,21 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             data3["ast"] = {};
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
-         data3["unk1"] = (int)dr.readShort();
-         data3["unk2"] = (int)dr.readShort();
+         int value;
+         if(type == 44 || type == 45 || type == 46 || type == 47 || type == 71){
+            value = dr.readLong();
+         }else{
+            value = dr.readBadLong();
+         }
+         data3["unk1"] = reinterpret_cast<short*>((&value))[0];
+         data3["unk2"] = reinterpret_cast<short*>((&value))[1];
       }else if(type == 128){
-         int data3Offset = dr.readInt();
+         int data3Offset = dr.readLong();
 
          data3["data3"] = readData3(data3Offset);
       }else if(type == 120 || type == 121 || type == 122 || type == 123 || type == 124 || type == 126 || type == 127){
-         int data3OffsetA = dr.readInt();
-         int data3OffsetB = dr.readInt();
+         int data3OffsetA = dr.readLong();
+         int data3OffsetB = dr.readLong();
 
          data3["data3A"] = readData3(data3OffsetA);
          data3["data3B"] = readData3(data3OffsetB);
@@ -560,7 +566,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
 
             if(dr.isRemaster){
-               readSubtypes(5);
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
                readInt();
                readInt();
                readInt();
@@ -604,21 +611,35 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readInt();
             readInt();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(4);
             readFloat();
             readFloat();
             readInt();
             readInt();
             readZero();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(4);
             readInt();
             readInt();
             readZero();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(1);
             readInt();
             readFloat();
             readSubtypes(2);
             readInt();
+            if(dr.isRemaster) readZero(); // ???
+            if(dr.isRemaster){
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 43){
             readFloat();
             readZero();
@@ -660,12 +681,14 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readInt();
             readZero();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(3);
             readZero();
             readZero();
             readInt();
             readFloat();
             readZero();
+            if(dr.isRemaster) readZero(); // ???
             readSubtypes(1);
             readInt();
             readInt();
@@ -674,6 +697,17 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readZero();
             readZero();
+
+            if(dr.isRemaster){
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 66){
             readFloat();
             readFloat();
@@ -986,14 +1020,30 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       dr.readPadding(16, lastByteAfterData3);
    }
    // Weird byte seen in 13520 so far
+   // Does it actually round to 8? sure let's try it
+   // Is it after subdata, not pond3...?
+   // 13520: next section is multiple of 8
+   // 2023: next section is multiple of 16
    if(dr.isRemaster && lastByteAfterPond3 != 0){
-      if(dr.bytesRead[lastByteAfterPond3]){
-         int bp=42;
+      //if(dr.bytesRead[lastByteAfterPond3]){
+      //   int bp=42;
+      //}
+      //int unk = dr.readInt(lastByteAfterPond3);
+      //if(unk != 0){
+      //   int bp=42;
+      //}
+
+      if(lastByteAfterPond3 % 8 == 0){
+         if(!dr.bytesRead[lastByteAfterPond3]){
+            int bp=42;
+         }
+      }else{
+         if(dr.bytesRead[lastByteAfterPond3]){
+            int bp=42;
+         }
+         dr.readInt(lastByteAfterPond3);
       }
-      int unk = dr.readInt(lastByteAfterPond3);
-      if(unk != 0){
-         int bp=42;
-      }
+      //dr.readPadding(8, lastByteAfterPond3);
    }
 
    // Mark padding before data2/data3 pointers as read
