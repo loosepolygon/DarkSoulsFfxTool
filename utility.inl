@@ -55,7 +55,10 @@ struct DataReader{
    int readLong(int addr = -1){
       if(!this->isRemaster) return this->readInt(addr);
 
-      if(addr == -1) addr = this->marker;
+      if(addr == -1){
+         this->readPadding(8);
+         addr = this->marker;
+      }
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
@@ -71,7 +74,10 @@ struct DataReader{
    int readBadLong(int addr = -1){
       if(!this->isRemaster) return this->readInt(addr);
 
-      if(addr == -1) addr = this->marker;
+      if(addr == -1){
+         this->readPadding(8);
+         addr = this->marker;
+      }
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
@@ -96,7 +102,10 @@ struct DataReader{
    float readBadFloat(int addr = -1){
       if(!this->isRemaster) return this->readFloat(addr);
 
-      if(addr == -1) addr = this->marker;
+      if(addr == -1){
+         this->readPadding(8);
+         addr = this->marker;
+      }
       this->bpTest(addr);
       std::vector<byte>& br = this->bytesRead;
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
@@ -129,8 +138,11 @@ struct DataReader{
 
    void readPadding(int roundAmount, int addr = -1){
       if(addr != -1) this->marker = addr;
-      while(this->marker % 16 != 0){
-         this->readByte();
+      while(this->marker % roundAmount != 0){
+         int zero = this->readByte();
+         if(zero != 0){
+            ffxReadError(this->path, L"readPadding found nonzero");
+         }
       }
    }
 };

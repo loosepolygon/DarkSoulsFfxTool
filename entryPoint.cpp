@@ -662,9 +662,7 @@ void testing(){
    const wchar_t* jsonDir = useRemastered ? L"json64/" : L"json/";
    const wchar_t* rebuiltDir = useRemastered ? L"rebuilt64/" : L"rebuilt/";
 
-
-   //TestFunctions testFunctions;
-   for(int ffxId : {13520}){
+   for(int ffxId : {459, 2023, 13520, 12830}){
       wchar_t wBuffer[250];
       swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", allFfxDir, ffxId);
       std::wstring ffxPath = wBuffer;
