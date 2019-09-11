@@ -3,7 +3,7 @@
 void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const TestFunctions& testFunctions){
    DataReader dr;
    dr.path = ffxPath;
-   //dr.bpOnRead = 8984;
+   dr.bpOnRead = 0;
    {
       FILE* file = _wfopen(ffxPath.c_str(), L"rb");
       if(file == NULL) {
@@ -67,13 +67,15 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          data3["unk2"] = dr.readInt();
          data3["unk3"] = dr.readInt();
       }else if(type == 2){
-         int offset = dr.readInt();
-         int count = dr.readInt();
+         int offset = dr.readLong();
+         int count = dr.readBadLong();
 
+         int oldMarker = dr.marker;
          json::JSON& bunchaInts = data3["bunchaInts"] = json::Array();
          for(int n = 0; n < count; ++n){
-            bunchaInts.append(dr.readInt(offset + n * 4)); // FIX
+            bunchaInts.append(dr.readInt(offset + n * 4));
          }
+         dr.marker = oldMarker;
       }else if(type == 3 || type == 5 || type == 6 || type == 9){
          int offsetToFloats = dr.readLong();
          int offsetToInts = dr.readLong();
@@ -85,16 +87,18 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floats = data3["floats"];
          json::JSON& ints = data3["ints"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
             floats.append(dr.readFloat(offsetToFloats + n * 4));
             ints.append(dr.readInt(offsetToInts + n * 4));
          }
+         dr.marker = oldMarker;
       }else if(type == 89){
-         int offsetToFloats = dr.readInt();
-         int offsetToInts = dr.readInt();
-         int count = dr.readInt();
-         int unk1 = dr.readInt();
-         int unk2 = dr.readInt();
+         int offsetToFloats = dr.readLong();
+         int offsetToInts = dr.readLong();
+         int count = dr.readBadLong();
+         int unk1 = dr.readBadLong();
+         int unk2 = dr.readLong();
 
          data3["note"] = "counts must match; unk1 and unk2 are always 1 and 0";
          data3["floats"] = json::Array();
@@ -102,10 +106,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floats = data3["floats"];
          json::JSON& ints = data3["ints"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
-            floats.append(dr.readFloat(offsetToFloats + n * 4)); // FIX
+            floats.append(dr.readFloat(offsetToFloats + n * 4));
             ints.append(dr.readInt(offsetToInts + n * 4));
          }
+         dr.marker = oldMarker;
 
          data3["unk1"] = unk1;
          data3["unk2"] = unk2;
@@ -120,14 +126,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsA = data3["floatsA"];
          json::JSON& floatsB = data3["floatsB"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
             floatsA.append(dr.readFloat(offsetA + n * 4));
             floatsB.append(dr.readFloat(offsetB + n * 4));
          }
+         dr.marker = oldMarker;
       }else if(type == 13 || type == 14){
-         int offsetA = dr.readInt();
-         int offsetB = dr.readInt();
-         int count = dr.readInt();
+         int offsetA = dr.readLong();
+         int offsetB = dr.readLong();
+         int count = dr.readBadLong();
 
          data3["note"] = "floatsB count is floatsA count x3";
          data3["floatsA"] = json::Array();
@@ -135,16 +143,18 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsA = data3["floatsA"];
          json::JSON& floatsB = data3["floatsB"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
             floatsA.append(dr.readFloat(offsetA + n * 4)); // VERY FIX
             floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 0));
             floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 4));
             floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 8));
          }
-      }else if(type == 19 || type == 20){
-         int offsetA = dr.readInt();
-         int offsetB = dr.readInt();
-         int count = dr.readInt();
+         dr.marker = oldMarker;
+      }else if(type == 19 || type == 20 || type == 27){
+         int offsetA = dr.readLong();
+         int offsetB = dr.readLong();
+         int count = dr.readBadLong();
 
          data3["note"] = "floatsB count is floatsA count x4";
          data3["floatsA"] = json::Array();
@@ -152,13 +162,15 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsA = data3["floatsA"];
          json::JSON& floatsB = data3["floatsB"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4)); // AHHHH
+            floatsA.append(dr.readFloat(offsetA + n * 4));
             floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 0));
             floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 4));
             floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 8));
             floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 12));
          }
+         dr.marker = oldMarker;
       }else if(type == 91 || type == 95){
          int offsetA = dr.readInt();
          int offsetB = dr.readInt();
@@ -172,10 +184,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsA = data3["floatsA"];
          json::JSON& floatsB = data3["floatsB"];
 
+         int oldMarker = dr.marker;
          for(int n = 0; n < count; ++n){
             floatsA.append(dr.readFloat(offsetA + n * 4)); // FIX
             floatsB.append(dr.readFloat(offsetB + n * 4));
          }
+         dr.marker = oldMarker;
 
          data3["unk1"] = unk1;
          data3["data3"] = readData3(data3Offset);
@@ -222,7 +236,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          int value;
-         if(type == 44 || type == 45 || type == 46 || type == 47 || type == 71){
+         if(type == 44 || type == 46 || type == 47 || type == 71 || type == 87){
             value = dr.readLong();
          }else{
             value = dr.readBadLong();
@@ -511,8 +525,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          int type = dr.readInt(pond2Offset);
          pond2["pond2Type"] = type;
          pond2["note"] = "";
+         int pond2Size = dr.readInt();
          // Round to padding
-         int totalSize = (dr.readInt() + 15) / 16 * 16;
          int preDataCount = dr.readLong();
          int offsetToPreDataNumbers = dr.readLong();
          int offsetToPreDataSubtypes = dr.readLong();
@@ -520,7 +534,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
          drP.bytes.resize(0);
          int headerSize = dr.marker - pond2Offset;
-         for(int n = headerSize; n < totalSize; ++n){
+         for(int n = headerSize; n < pond2Size; ++n){
             drP.bytes.push_back(dr.readByte(pond2Offset + n));
          }
          drP.bytesRead.resize(0);
@@ -528,6 +542,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          drP.marker = 0;
          drP.isRemaster = dr.isRemaster;
          drP.path = dr.path;
+
+         // Read padding after subtype data
+         dr.readPadding(16);
 
          // Pre data
          json::JSON& preData = pond2["preData"] = json::Array();
@@ -567,7 +584,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             if(dr.isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
-               readInt();
+               readFloat();
                readInt();
                readInt();
                readInt();
@@ -588,7 +605,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readSubtypes(4);
             readFloat();
             readInt();
-            readInt();
+            readLong();
          }else if(type == 31){
             readSubtypes(4);
             readInt();
@@ -628,7 +645,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             if(dr.isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
-               readInt();
+               readFloat();
                readInt();
                readInt();
                readInt();
@@ -639,6 +656,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readZero();
             readZero();
+            // This one isn't aligned by 8 :S
             readInt("texId");
             readInt();
             readInt();
@@ -652,7 +670,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readZero();
             readFloat();
          }else if(type == 59){
-            readZero();
+            readFloat();
             readZero();
             readInt("texId");
             readZero();
@@ -668,6 +686,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readZero();
+            if(dr.isRemaster){
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
+               readFloat();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 61){
             readZero();
             readZero();
@@ -690,11 +718,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readZero();
             readZero();
-
             if(dr.isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
-               readInt();
+               readFloat();
                readInt();
                readInt();
                readInt();
@@ -716,6 +743,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readInt();
             readFloat();
+            if(dr.isRemaster) readZero(); // ??? another round to 8?
             readInt("texId1");
             readInt("texId2");
             readInt("texId3");
@@ -728,6 +756,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readZero();
             readZero();
             readZero();
+            if(dr.isRemaster){
+               readZero();
+               readZero();
+               readZero();
+               readZero();
+            }
             readInt();
             readInt();
             readInt();
@@ -735,6 +769,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
+            if(dr.isRemaster){
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
+               readFloat();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 71){
             readFloat();
             readFloat();
@@ -804,6 +848,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readInt();
             readFloat();
+            if(dr.isRemaster) readZero(); // ???
             readInt("modelId");
             readInt();
             readInt();
@@ -837,6 +882,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
+            if(dr.isRemaster){
+               readSubtype("remasterFromHere");
+               readSubtypes(4);
+               readFloat();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 117){
             // DSR
             readSubtypes(6);
@@ -847,7 +902,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             ffxReadError(ffxPath, L"pond2 unknown type");
          }
 
-         // TODO: test if all bytes are read
+         // Read padding before subtype data
+         drP.readPadding(8);
+
+         // Test if all bytes are read exactly once
+         for(size_t b = 0; b < drP.bytesRead.size(); ++b){
+            if(drP.bytesRead[b] == 0){
+               printf("Byte not read at 0x%X (%d)\n", b, b);
+               throw;
+            }else if(drP.bytesRead[b] > 1){
+               printf("Byte read %d times at 0x%X (%d)\n", drP.bytesRead[b], b, b);
+               throw;
+            }
+         }
 
          testFunctions.onPond2(pond2, {ast, root});
       }
