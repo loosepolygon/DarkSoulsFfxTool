@@ -64,27 +64,11 @@ struct DataReader{
       ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
       ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
       this->marker = addr + 8;
-      if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0){
-         ffxReadError(this->path, L"readLong's second half incorrect");
-         throw;
-      }
-      return *reinterpret_cast<int*>(&this->bytes[addr]);
-   }
-
-   int readBadLong(int addr = -1){
-      if(!this->isRemaster) return this->readInt(addr);
-
-      if(addr == -1){
-         this->readPadding(8);
-         addr = this->marker;
-      }
-      this->bpTest(addr);
-      std::vector<byte>& br = this->bytesRead;
-      ++br[addr+0]; ++br[addr+1]; ++br[addr+2]; ++br[addr+3];
-      ++br[addr+4]; ++br[addr+5]; ++br[addr+6]; ++br[addr+7];
-      this->marker = addr + 8;
-      if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0xcdcdcdcd){
-         ffxReadError(this->path, L"readBadLong's second half incorrect");
+      int secondHalf = *reinterpret_cast<int*>(&this->bytes[addr + 4]);
+      // There used to be readLong and readBadLong but ffx 2116 showed four instances
+      // of Data3 T138 that were bad longs except the first one so I gave up
+      if(secondHalf != 0 && secondHalf != 0xcdcdcdcd){
+         ffxReadError(this->path, L"readLong's second half not 0 or cdcdcdcd");
          throw;
       }
       return *reinterpret_cast<int*>(&this->bytes[addr]);
