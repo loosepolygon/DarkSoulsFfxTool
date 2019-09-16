@@ -36,7 +36,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    root["templateASTs"] = json::Array();
 
    int lastPond1Data3Offset = 0;
-   int lastByteAfterPond3 = 0; // rounds to 8 after
+   int lastByteAfterSubDataAndPond3s = 0; // rounds to 8 after
    int lastByteAfterData3 = 0; // DSR padding
    int astSize;
    int longSize;
@@ -75,6 +75,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int n = 0; n < count; ++n){
             bunchaInts.append(dr.readInt(offset + n * 4));
          }
+         if(dr.marker > lastByteAfterSubDataAndPond3s){
+            lastByteAfterSubDataAndPond3s = dr.marker;
+         }
          dr.marker = oldMarker;
       }else if(type == 3 || type == 5 || type == 6 || type == 9){
          int offsetToFloats = dr.readLong();
@@ -91,6 +94,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int n = 0; n < count; ++n){
             floats.append(dr.readFloat(offsetToFloats + n * 4));
             ints.append(dr.readInt(offsetToInts + n * 4));
+         }
+         if(dr.marker > lastByteAfterSubDataAndPond3s){
+            lastByteAfterSubDataAndPond3s = dr.marker;
          }
          dr.marker = oldMarker;
       }else if(type == 89){
@@ -110,6 +116,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          for(int n = 0; n < count; ++n){
             floats.append(dr.readFloat(offsetToFloats + n * 4));
             ints.append(dr.readInt(offsetToInts + n * 4));
+         }
+         if(dr.marker > lastByteAfterSubDataAndPond3s){
+            lastByteAfterSubDataAndPond3s = dr.marker;
          }
          dr.marker = oldMarker;
 
@@ -131,6 +140,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             floatsA.append(dr.readFloat(offsetA + n * 4));
             floatsB.append(dr.readFloat(offsetB + n * 4));
          }
+         if(dr.marker > lastByteAfterSubDataAndPond3s){
+            lastByteAfterSubDataAndPond3s = dr.marker;
+         }
          dr.marker = oldMarker;
       }else if(type == 13 || type == 14){
          int offsetA = dr.readLong();
@@ -150,6 +162,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 4));
             floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 8));
          }
+         if(dr.marker > lastByteAfterSubDataAndPond3s){
+            lastByteAfterSubDataAndPond3s = dr.marker;
+         }
          dr.marker = oldMarker;
       }else if(type == 19 || type == 20 || type == 27){
          int offsetA = dr.readLong();
@@ -163,12 +178,22 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4));
-            floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 0));
-            floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 4));
-            floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 8));
-            floatsB.append(dr.readFloat(offsetB + n * 4 * 4 + 12));
+         {
+            dr.marker = offsetA;
+            for(int n = 0; n < count; ++n){
+               floatsA.append(dr.readFloat());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
+
+            dr.marker = offsetB;
+            for(int n = 0; n < count; ++n){
+               floatsB.append(dr.readFloat());
+               floatsB.append(dr.readFloat());
+               floatsB.append(dr.readFloat());
+               floatsB.append(dr.readFloat());
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 21){
@@ -339,6 +364,9 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
          testFunctions.onPond1(data3s, {ast, root});
 
+
+         // TODO: fix these offset reads instead of marker reads
+
          json::JSON& pond3 = ast["pond3"] = json::Object();
          if(pond3Offset){
             int type = dr.readInt(pond3Offset + 0);
@@ -387,14 +415,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
             testFunctions.onPond3(pond3, {ast, root});
 
-            if(type != 1 && dr.marker > lastByteAfterPond3){
-               lastByteAfterPond3 = dr.marker;
+            if(type != 1 && dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
             }
          }
       }
 
       if(pond2Offset){
-         int pond2Address = pond2Offset;
          json::JSON* currentObject = nullptr;
          int headerBeforeDR = dr.isRemaster ? 40 : 24;
 
@@ -447,7 +474,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             }
 
             oldMarker = drP.marker;
-            drP.marker = fullOffset - pond2Address - headerBeforeDR;
+            drP.marker = fullOffset - pond2Offset - headerBeforeDR;
 
             if(name == nullptr){
                sprintf(sBuffer, "unk%dSubtype%d", currentObject->size() - 1, subtype);
@@ -458,20 +485,22 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
             bool isCurve = (
                subtype == 0 || subtype == 4 || subtype == 5 || subtype == 6 || subtype == 7 ||
-               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17
+               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17 || 
+               subtype == 20
             );
             if(isCurve){
                bool hasRange = subtype == 5 || subtype == 7 || subtype == 9 || subtype == 17;
                bool hasPreDataIndex = subtype == 6 || subtype == 7;
-               int numArrays = subtype == 8 || subtype == 9 ? 4 : 2;
+               int numArrays = subtype == 8 || subtype == 9 || subtype == 20 ? 4 : 2;
                const char* curveType = "unknown";
                if(subtype == 0 || subtype == 12) curveType = "constant";
                bool repeats = subtype == 12 || subtype == 16;
+               bool isRemaster = subtype == 20;
 
                sprintf(
                   sBuffer,
-                  "Subtype %d: Curve type: %s; Repeat: %s",
-                  subtype, curveType, repeats ? "true" : "false"
+                  "Subtype %d%s: Curve type: %s; Repeat: %s",
+                  subtype, isRemaster ? " (Remaster, no testing done)" : "", curveType, repeats ? "true" : "false"
                );
                obj["note"] = sBuffer;
 
@@ -553,7 +582,6 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          pond2["pond2Type"] = type;
          pond2["note"] = "";
          int pond2Size = dr.readInt();
-         // Round to padding
          int preDataCount = dr.readLong();
          int offsetToPreDataNumbers = dr.readLong();
          int offsetToPreDataSubtypes = dr.readLong();
@@ -578,8 +606,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          if(preDataCount > 0){
             int oldMarker = drP.marker;
 
-            int localNumbersOffset = offsetToPreDataNumbers - pond2Address - headerBeforeDR;
-            int localSubtypesOffset = offsetToPreDataSubtypes - pond2Address - headerBeforeDR;
+            int localNumbersOffset = offsetToPreDataNumbers - pond2Offset - headerBeforeDR;
+            int localSubtypesOffset = offsetToPreDataSubtypes - pond2Offset - headerBeforeDR;
             for(int n = 0; n < preDataCount; ++n){
                json::JSON entry;
 
@@ -766,8 +794,22 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
+            if(dr.isRemaster){
+               readLong();
+            }
             readSubtypes(26);
             readZero();
+            if(dr.isRemaster){
+               readZero();
+               readSubtype("remasterDataFromHere");
+               readSubtypes(4);
+               readFloat();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+               readInt();
+            }
          }else if(type == 70){
             readFloat();
             readFloat();
@@ -942,7 +984,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                printf("Byte not read at 0x%X (%d)\n", b, b);
                throw;
             }else if(drP.bytesRead[b] > 1){
-               printf("Byte read %d times at 0x%X (%d)\n", drP.bytesRead[b], b, b);
+               printf(
+                  "Byte read %d times at 0x%X (%d)\n",
+                  drP.bytesRead[b],
+                  b + pond2Offset + headerSize,
+                  b + pond2Offset + headerSize
+               );
                throw;
             }
          }
@@ -1098,8 +1145,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    }
 
    // Round a section to 8 because there's a long after
-   if(dr.isRemaster && lastByteAfterPond3 != 0){
-      dr.readPadding(8, lastByteAfterPond3);
+   if(dr.isRemaster && lastByteAfterSubDataAndPond3s != 0){
+      dr.readPadding(8, lastByteAfterSubDataAndPond3s);
    }
 
    // Mark padding before data2/data3 pointers as read
