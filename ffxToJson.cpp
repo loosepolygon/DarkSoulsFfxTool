@@ -166,7 +166,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             lastByteAfterSubDataAndPond3s = dr.marker;
          }
          dr.marker = oldMarker;
-      }else if(type == 19 || type == 20 || type == 27){
+      }else if(type == 19 || type == 20 || type == 27 || type == 28){
          int offsetA = dr.readLong();
          int offsetB = dr.readLong();
          int count = dr.readLong();
@@ -188,15 +188,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             }
 
             dr.marker = offsetB;
-            for(int n = 0; n < count; ++n){
-               floatsB.append(dr.readFloat());
-               floatsB.append(dr.readFloat());
-               floatsB.append(dr.readFloat());
+            for(int n = 0; n < count * 4; ++n){
                floatsB.append(dr.readFloat());
             }
          }
          dr.marker = oldMarker;
-      }else if(type == 21){
+      }else if(type == 21 || type == 22 || type == 29){
+         // DSR
          int offsetA = dr.readLong();
          int offsetB = dr.readLong();
          int count = dr.readLong();
