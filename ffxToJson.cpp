@@ -67,16 +67,20 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          data3["unk2"] = dr.readInt();
          data3["unk3"] = dr.readInt();
       }else if(type == 2){
-         int offset = dr.readLong();
+         int offsetToInts = dr.readLong();
          int count = dr.readLong();
 
+         json::JSON& ints = data3["bunchaInts"] = json::Array();
+
          int oldMarker = dr.marker;
-         json::JSON& bunchaInts = data3["bunchaInts"] = json::Array();
-         for(int n = 0; n < count; ++n){
-            bunchaInts.append(dr.readInt(offset + n * 4));
-         }
-         if(dr.marker > lastByteAfterSubDataAndPond3s){
-            lastByteAfterSubDataAndPond3s = dr.marker;
+         {
+            dr.marker = offsetToInts;
+            for(int n = 0; n < count; ++n){
+               ints.append(dr.readInt());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 3 || type == 5 || type == 6 || type == 9){
@@ -91,12 +95,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& ints = data3["ints"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floats.append(dr.readFloat(offsetToFloats + n * 4));
-            ints.append(dr.readInt(offsetToInts + n * 4));
-         }
-         if(dr.marker > lastByteAfterSubDataAndPond3s){
-            lastByteAfterSubDataAndPond3s = dr.marker;
+         {
+            dr.marker = offsetToFloats;
+            for(int n = 0; n < count; ++n){
+               floats.append(dr.readFloat());
+            }
+
+            dr.marker = offsetToInts;
+            for(int n = 0; n < count; ++n){
+               ints.append(dr.readInt());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 89){
@@ -113,12 +124,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& ints = data3["ints"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floats.append(dr.readFloat(offsetToFloats + n * 4));
-            ints.append(dr.readInt(offsetToInts + n * 4));
-         }
-         if(dr.marker > lastByteAfterSubDataAndPond3s){
-            lastByteAfterSubDataAndPond3s = dr.marker;
+         {
+            dr.marker = offsetToFloats;
+            for(int n = 0; n < count; ++n){
+               floats.append(dr.readFloat());
+            }
+
+            dr.marker = offsetToInts;
+            for(int n = 0; n < count; ++n){
+               ints.append(dr.readInt());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
          }
          dr.marker = oldMarker;
 
@@ -136,12 +154,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4));
-            floatsB.append(dr.readFloat(offsetB + n * 4));
-         }
-         if(dr.marker > lastByteAfterSubDataAndPond3s){
-            lastByteAfterSubDataAndPond3s = dr.marker;
+         {
+            dr.marker = offsetA;
+            for(int n = 0; n < count; ++n){
+               floatsA.append(dr.readFloat());
+            }
+
+            dr.marker = offsetB;
+            for(int n = 0; n < count; ++n){
+               floatsB.append(dr.readFloat());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 13 || type == 14){
@@ -156,14 +181,19 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4));
-            floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 0));
-            floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 4));
-            floatsB.append(dr.readFloat(offsetB + n * 3 * 4 + 8));
-         }
-         if(dr.marker > lastByteAfterSubDataAndPond3s){
-            lastByteAfterSubDataAndPond3s = dr.marker;
+         {
+            dr.marker = offsetA;
+            for(int n = 0; n < count; ++n){
+               floatsA.append(dr.readFloat());
+            }
+
+            dr.marker = offsetB;
+            for(int n = 0; n < count * 3; ++n){
+               floatsB.append(dr.readFloat());
+            }
+            if(dr.marker > lastByteAfterSubDataAndPond3s){
+               lastByteAfterSubDataAndPond3s = dr.marker;
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 19 || type == 20 || type == 27 || type == 28){
@@ -206,13 +236,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          int oldMarker = dr.marker;
-         dr.marker = offsetA;
-         for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat());
-         }
-         dr.marker = offsetB;
-         for(int n = 0; n < count * 12; ++n){
-            floatsB.append(dr.readFloat());
+         {
+            dr.marker = offsetA;
+            for(int n = 0; n < count; ++n){
+               floatsA.append(dr.readFloat());
+            }
+
+            dr.marker = offsetB;
+            for(int n = 0; n < count * 12; ++n){
+               floatsB.append(dr.readFloat());
+            }
          }
          dr.marker = oldMarker;
       }else if(type == 91 || type == 95){
@@ -229,9 +262,16 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          json::JSON& floatsB = data3["floatsB"];
 
          int oldMarker = dr.marker;
-         for(int n = 0; n < count; ++n){
-            floatsA.append(dr.readFloat(offsetA + n * 4)); // FIX
-            floatsB.append(dr.readFloat(offsetB + n * 4));
+         {
+            dr.marker = offsetA;
+            for(int n = 0; n < count; ++n){
+               floatsA.append(dr.readFloat());
+            }
+
+            dr.marker = offsetB;
+            for(int n = 0; n < count; ++n){
+               floatsB.append(dr.readFloat());
+            }
          }
          dr.marker = oldMarker;
 
@@ -279,12 +319,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             data3["ast"] = {};
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
-         int value;
-         if(type == 44 || type == 46 || type == 47 || type == 71 || type == 87){
-            value = dr.readLong();
-         }else{
-            value = dr.readLong();
-         }
+         int value = dr.readLong();
          data3["unk1"] = reinterpret_cast<short*>((&value))[0];
          data3["unk2"] = reinterpret_cast<short*>((&value))[1];
       }else if(type == 128){
@@ -362,49 +397,46 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
          testFunctions.onPond1(data3s, {ast, root});
 
-
-         // TODO: fix these offset reads instead of marker reads
-
          json::JSON& pond3 = ast["pond3"] = json::Object();
          if(pond3Offset){
-            int type = dr.readInt(pond3Offset + 0);
+            int type = dr.readInt(pond3Offset);
             pond3["pond3Type"] = type;
             if(type == 0){
-               pond3["astCountMaybe"] = dr.readInt(pond3Offset + 4);
+               pond3["astCountMaybe"] = dr.readInt();
             }else if(type == 1){
-               pond3["unk1"] = dr.readInt(pond3Offset + 4);
-               pond3["unk2"] = dr.readInt(pond3Offset + 8);
-               pond3["unk3"] = dr.readInt(pond3Offset + 12);
-               pond3["offsetX"] = dr.readFloat(pond3Offset + 16);
-               pond3["offsetY"] = dr.readFloat(pond3Offset + 20);
-               pond3["unk6"] = dr.readInt(pond3Offset + 24);
-               pond3["unk7"] = dr.readInt(pond3Offset + 28);
-               pond3["unk8"] = dr.readInt(pond3Offset + 32);
-               pond3["unk9"] = dr.readFloat(pond3Offset + 36);
-               pond3["unk10"] = dr.readFloat(pond3Offset + 40);
-               pond3["unk11"] = dr.readFloat(pond3Offset + 44);
+               pond3["unk1"] = dr.readInt();
+               pond3["unk2"] = dr.readInt();
+               pond3["unk3"] = dr.readInt();
+               pond3["offsetX"] = dr.readFloat();
+               pond3["offsetY"] = dr.readFloat();
+               pond3["unk6"] = dr.readInt();
+               pond3["unk7"] = dr.readInt();
+               pond3["unk8"] = dr.readInt();
+               pond3["unk9"] = dr.readFloat();
+               pond3["unk10"] = dr.readFloat();
+               pond3["unk11"] = dr.readFloat();
             }else if(type == 2){
-               pond3["lifetime"] = dr.readFloat(pond3Offset + 4);
-               pond3["unk2"] = dr.readFloat(pond3Offset + 8);
-               pond3["unk3"] = dr.readInt(pond3Offset + 12);
-               pond3["unk4"] = dr.readFloat(pond3Offset + 16);
-               pond3["unk5"] = dr.readByte(pond3Offset + 20);
-               pond3["unk6"] = dr.readByte(pond3Offset + 21);
-               dr.readShort(pond3Offset + 22);
+               pond3["lifetime"] = dr.readFloat();
+               pond3["unk2"] = dr.readFloat();
+               pond3["unk3"] = dr.readInt();
+               pond3["unk4"] = dr.readFloat();
+               pond3["unk5"] = dr.readByte();
+               pond3["unk6"] = dr.readByte();
+               dr.readShort();
             }else if(type == 3){
-               pond3["unk1"] = dr.readFloat(pond3Offset + 4);
-               pond3["unk2"] = dr.readInt(pond3Offset + 8);
-               pond3["unk3"] = dr.readFloat(pond3Offset + 12);
-               pond3["unk4"] = dr.readInt(pond3Offset + 16);
+               pond3["unk1"] = dr.readFloat();
+               pond3["unk2"] = dr.readInt();
+               pond3["unk3"] = dr.readFloat();
+               pond3["unk4"] = dr.readInt();
             }else if(type == 4){
-               pond3["unk1"] = dr.readInt(pond3Offset + 4);
+               pond3["unk1"] = dr.readInt();
             }else if(type == 5){
-               pond3["unk1"] = dr.readInt(pond3Offset + 4);
+               pond3["unk1"] = dr.readInt();
             }else if(type == 6){
-               pond3["unk1"] = dr.readFloat(pond3Offset + 4);
-               pond3["unk2"] = dr.readInt(pond3Offset + 8);
+               pond3["unk1"] = dr.readFloat();
+               pond3["unk2"] = dr.readInt();
             }else if(type == 7){
-               pond3["unk1"] = dr.readInt(pond3Offset + 4);
+               pond3["unk1"] = dr.readInt();
             }else{
                wchar_t wBuffer[80];
                swprintf(wBuffer, sizeof(wBuffer), L"Pond3 type %d umfamiliar, addr = %d\n", type, pond3Offset);
