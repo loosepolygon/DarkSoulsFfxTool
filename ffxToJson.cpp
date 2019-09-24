@@ -358,7 +358,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       bool flag2 = (bool)dr.readByte();
       bool flag3 = (bool)dr.readByte();
       dr.readByte();
-      dr.readInt(); // 0xcdcdcdcd
+      if(dr.isRemaster) dr.readInt(); // 0xcdcdcdcd
       int pond2Offset = dr.readLong();
       int pond3Offset = dr.readLong();
 
@@ -561,7 +561,11 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
                   json::JSON& values3 = obj["values3"];
                   for(int n = 0; n < arraySize; ++n){
                      values1.append(drP.readFloat());
+                  }
+                  for(int n = 0; n < arraySize; ++n){
                      values2.append(drP.readFloat());
+                  }
+                  for(int n = 0; n < arraySize; ++n){
                      values3.append(drP.readFloat());
                   }
                }
@@ -1006,7 +1010,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }
 
          // Read padding before subtype data
-         drP.readPadding(8);
+         if(dr.isRemaster) drP.readPadding(8);
 
          // Test if all bytes are read exactly once
          for(size_t b = 0; b < drP.bytesRead.size(); ++b){

@@ -465,7 +465,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeFloat();
             writeFloat();
             writeZero();
-            writeZero();
+            writeFloat();
             writeInt();
             writeInt();
             writeZero();
@@ -533,7 +533,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeZero();
             writeFloat();
          }else if(pond2Type == 59){
-            writeZero();
+            writeFloat();
             writeZero();
             writeInt();
             writeZero();
@@ -615,8 +615,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeFloat();
             writeInt();
             writeFloat();
+            writeInt(); // texID
             writeInt();
-            writeZero();
             writeInt();
             writeInt();
             writeInt();
@@ -650,7 +650,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeSubtypes(1);
          }else if(pond2Type == 107){
-            writeZero();
+            writeFloat();
             writeZero();
             writeInt();
             writeInt();
