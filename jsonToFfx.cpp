@@ -359,7 +359,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dwPond2Stuff.push_back(dwPreDataSubtypes);
          dwPond2Stuff.push_back(dwSubtypeData);
 
-         dwPreDataSubtypes->padToMultiple = 8;
+         if(isRemaster){
+            dwPreDataSubtypes->padToMultiple = 8;
+         }
          dwSubtypeData->padToMultiple = 16;
 
          dw.addOffsetToFixAt(posPond2Offset, *dwPond2, 0);
@@ -468,7 +470,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dwPond2->writeFloat(vars[varIndex++].ToFloat());
          };
          auto writeSubtypes = [&](int subtypeCount) -> void{
-            dwPond2->writePadding(8);
+            if(isRemaster){
+               dwPond2->writePadding(8);
+            }
 
             for(int n = 0; n < subtypeCount; ++n){
                writeSubtype(*dwPond2, vars[varIndex++]);
@@ -479,7 +483,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             // subtypeOrder index: subtype *data* order
             // subtypeOrder value: subtype index
 
-            dwPond2->writePadding(8);
+            if(isRemaster){
+               dwPond2->writePadding(8);
+            }
 
             int pond2OldSize = dwPond2->bytes.size();
             int subtypeDataOldSize = dwSubtypeData->bytes.size();
