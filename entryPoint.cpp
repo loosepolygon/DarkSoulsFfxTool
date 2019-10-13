@@ -1,7 +1,6 @@
 #include "header.hpp"
-#include "md5.hpp"
 
-int jsonVersion = 5;
+int jsonVersion = 5; // Change
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
@@ -49,15 +48,13 @@ void argError(const std::wstring& text){
 }
 
 
-std::string getMD5(const std::wstring& filePath){
+std::vector<byte> getFileBytes(const std::wstring& filePath){
    std::vector<byte> bytes;
-   {
-      FILE* file = _wfopen(filePath.c_str(), L"rb");
-      if(file == NULL) {
-         ffxReadError(filePath, L"Cannot open file");
-         return "";
-      }
 
+   FILE* file = _wfopen(filePath.c_str(), L"rb");
+   if(file == NULL) {
+      ffxReadError(filePath, L"Cannot open file");
+   }else{
       fseek(file, 0, SEEK_END);
       long fileSize = ftell(file);
       fseek(file, 0, SEEK_SET);
@@ -68,10 +65,7 @@ std::string getMD5(const std::wstring& filePath){
       fclose(file);
    }
 
-   MD5 md5;
-   md5.update(bytes.data(), bytes.size());
-   md5.finalize();
-   return std::move(md5.hexdigest());
+   return std::move(bytes);
 }
 
 void importEveryFfx(std::wstring originalDir, std::wstring jsonDir){
@@ -84,7 +78,12 @@ void importEveryFfx(std::wstring originalDir, std::wstring jsonDir){
    }
 }
 
-void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::wstring ffxDir){
+void exportEveryFfxAndTest(
+   std::wstring originalDir,
+   std::wstring jsonDir,
+   std::wstring ffxDir,
+   bool isRemaster
+){
    std::wstring dirArg = L"mkdir " + ffxDir;
    if(dirArg.back() == L'/') dirArg.resize(dirArg.size() - 1);
    _wsystem(dirArg.c_str());
@@ -94,11 +93,29 @@ void exportEveryFfxAndTest(std::wstring originalDir, std::wstring jsonDir, std::
 
       jsonToFfx(jsonDir + fileName + L".json", ffxDir + fileName);
 
-      std::string md5Original = getMD5(originalDir + fileName);
-      std::string md5Rebuilt = getMD5(ffxDir + fileName);
+      std::vector<byte> originalBytes = getFileBytes(originalDir + fileName);
+      std::vector<byte> rebuiltBytes = getFileBytes(ffxDir + fileName);
 
-      if(md5Original != md5Rebuilt){
-         throw;
+      if(originalBytes.size() != rebuiltBytes.size()){
+;         throw;
+      }
+
+      for(size_t b = 0; b < originalBytes.size(); b += 4){
+         int originalInt = *reinterpret_cast<int*>(&originalBytes[b]);
+         int rebuiltInt = *reinterpret_cast<int*>(&rebuiltBytes[b]);
+
+         if(isRemaster){
+            if(originalInt != rebuiltInt){
+               bool isUninitialized = originalInt == 0xCDCDCDCD;
+               if(isUninitialized && rebuiltInt != 0){
+                  throw;
+               }
+            }
+         }else{
+            if(originalInt != rebuiltInt){
+               throw;
+            }
+         }
       }
    }
 
@@ -662,14 +679,14 @@ void testing(){
    const wchar_t* jsonDir = useRemastered ? L"json64/" : L"json/";
    const wchar_t* rebuiltDir = useRemastered ? L"rebuilt64/" : L"rebuilt/";
 
-   for(int ffxId : {459, 2023, 13520, 12830}){
-      wchar_t wBuffer[250];
-      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", allFfxDir, ffxId);
-      std::wstring ffxPath = wBuffer;
-      swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx.json", jsonDir, ffxId);
-      std::wstring jsonPath = wBuffer;
-      ffxToJson(ffxPath, jsonPath);
-   }
+   //for(int ffxId : {459, 2023, 13520, 12830}){
+   //   wchar_t wBuffer[250];
+   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx", allFfxDir, ffxId);
+   //   std::wstring ffxPath = wBuffer;
+   //   swprintf(wBuffer, sizeof(wBuffer), L"%sf%07d.ffx.json", jsonDir, ffxId);
+   //   std::wstring jsonPath = wBuffer;
+   //   ffxToJson(ffxPath, jsonPath);
+   //}
 
    //importEveryFfx(allFfxDir, jsonDir);
    //importEveryFfxAndResearch(allFfxDir, jsonDir);
@@ -684,7 +701,7 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   //exportEveryFfxAndTest(allFfxDir, jsonDir, rebuiltDir);
+   exportEveryFfxAndTest(allFfxDir, jsonDir, rebuiltDir, useRemastered);
 }
 
 void mainProgram(int argCount, wchar_t** args){

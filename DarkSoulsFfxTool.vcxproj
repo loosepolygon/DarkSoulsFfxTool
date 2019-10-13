@@ -126,14 +126,12 @@
     <ClCompile Include="ffxToJson.cpp" />
     <ClCompile Include="json.cpp" />
     <ClCompile Include="jsonToFfx.cpp" />
-    <ClCompile Include="md5.cpp" />
     <ClCompile Include="utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utility.inl" />
     <ClInclude Include="header.hpp" />
     <ClInclude Include="json.hpp" />
-    <ClInclude Include="md5.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
