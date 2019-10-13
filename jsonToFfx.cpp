@@ -359,6 +359,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dwPond2Stuff.push_back(dwPreDataSubtypes);
          dwPond2Stuff.push_back(dwSubtypeData);
 
+         dwPreDataSubtypes->padToMultiple = 8;
          dwSubtypeData->padToMultiple = 16;
 
          dw.addOffsetToFixAt(posPond2Offset, *dwPond2, 0);
@@ -467,6 +468,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dwPond2->writeFloat(vars[varIndex++].ToFloat());
          };
          auto writeSubtypes = [&](int subtypeCount) -> void{
+            dwPond2->writePadding(8);
+
             for(int n = 0; n < subtypeCount; ++n){
                writeSubtype(*dwPond2, vars[varIndex++]);
             }
@@ -475,6 +478,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          auto writeSubtypesWithDataOrder = [&](std::vector<int> subtypeOrder) -> void{
             // subtypeOrder index: subtype *data* order
             // subtypeOrder value: subtype index
+
+            dwPond2->writePadding(8);
 
             int pond2OldSize = dwPond2->bytes.size();
             int subtypeDataOldSize = dwSubtypeData->bytes.size();
@@ -515,7 +520,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          auto writeRemasterThing = [&]() -> void{
             if(!isRemaster) return;
 
-            writeSubtypes(5);
+            writeSubtypesWithDataOrder({0, 1, 2, 4, 3});
             writeFloat();
             writeInt();
             writeInt();
@@ -909,6 +914,13 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    }
    std::vector<DataWriter*> dataWriters;
    if(isRemaster){
+      if(dwSubDataAndPond3s.bytes.size() > 0){
+         dwSubDataAndPond3s.padToMultiple = 8;
+      }
+      if(dwData3s.bytes.size() > 0){
+         dwData3s.padToMultiple = 16;
+      }
+
       dataWriters.insert(
          dataWriters.end(),
          {

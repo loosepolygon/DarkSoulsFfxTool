@@ -267,6 +267,7 @@ public:
          }
       }
 
+      // Didn't find offset
       throw;
    }
 
