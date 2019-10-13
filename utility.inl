@@ -38,9 +38,9 @@ struct DataReader{
    std::wstring path;
 
    void bpTest(int addr){
-      if(addr == this->bpOnRead){
-         int bp=42;
-      }
+      //if(addr == this->bpOnRead){
+      //   int bp=42;
+      //}
    }
 
    int readInt(int addr = -1){
@@ -56,6 +56,7 @@ struct DataReader{
       if(!this->isRemaster) return this->readInt(addr);
 
       if(addr == -1){
+         // Most 8-byte ints are read aligned by 8 (except like one case, thanks fromsoft)
          this->readPadding(8);
          addr = this->marker;
       }
@@ -137,10 +138,10 @@ class DataWriter{
       DataWriter* dwSource;
       int readThisOffset;
 
-      OffsetToFix(int b, DataWriter& c, int d) : 
-         writeOffsetHere(b),
-         dwSource(&c),
-         readThisOffset(d)
+      OffsetToFix(int a, DataWriter& b, int c) : 
+         writeOffsetHere(a),
+         dwSource(&b),
+         readThisOffset(c)
       {}
    };
 
@@ -151,27 +152,92 @@ public:
    std::vector<byte> bytes;
    int finalOffset = 0;
    int padToMultiple = 0;
+   bool isRemaster = false;
 
-   template<typename T>
-   void write(T t){
-      this->bytes.resize(this->bytes.size() + sizeof(T));
-      byte* dest = this->bytes.data() + (this->bytes.size() - sizeof(T));
-      *reinterpret_cast<T*>(dest) = t;
-   }
-
-   template<typename T>
-   void writeAt(int offset, T t){
-      if(this->bytes.size() < offset + sizeof(T)){
-         this->bytes.resize(offset + sizeof(T));
+   DataWriter(bool isRemaster) : isRemaster(isRemaster){}
+   
+   void writeByteAt(int offset, byte value){
+      if(this->bytes.size() < offset + sizeof(byte)){
+         this->bytes.resize(offset + sizeof(byte));
       }
 
       byte* dest = this->bytes.data() + offset;
-      *reinterpret_cast<T*>(dest) = t;
+      *reinterpret_cast<byte*>(dest) = value;
    }
 
-   template<typename T>
-   T read(int offset){
-      return *reinterpret_cast<T*>(&this->bytes[offset]);
+   void writeShortAt(int offset, short value){
+      if(this->bytes.size() < offset + sizeof(short)){
+         this->bytes.resize(offset + sizeof(short));
+      }
+
+      byte* dest = this->bytes.data() + offset;
+      *reinterpret_cast<short*>(dest) = value;
+   }
+
+   void writeIntAt(int offset, int value){
+      if(this->bytes.size() < offset + sizeof(int)){
+         this->bytes.resize(offset + sizeof(int));
+      }
+
+      byte* dest = this->bytes.data() + offset;
+      *reinterpret_cast<int*>(dest) = value;
+   }
+
+   // Writes 64-bit ints for remaster and 32-bit ints for PTD
+   void writeLongAt(int offset, int value){
+      size_t valueSize = this->isRemaster ? 8 : 4;
+      if(this->bytes.size() < offset + valueSize){
+         this->bytes.resize(offset + valueSize);
+      }
+
+      byte* dest = this->bytes.data() + offset;
+      *reinterpret_cast<int*>(dest) = (int)value;
+      if(this->isRemaster){
+         *reinterpret_cast<int*>(dest + 4) = 0;
+      }
+   }
+
+   void writeFloatAt(int offset, float value){
+      if(this->bytes.size() < offset + sizeof(float)){
+         this->bytes.resize(offset + sizeof(float));
+      }
+
+      byte* dest = this->bytes.data() + offset;
+      *reinterpret_cast<float*>(dest) = value;
+   }
+
+   void writeByte(byte value){
+      this->writeByteAt(this->bytes.size(), value);
+   }
+
+   void writeShort(short value){
+      this->writeShortAt(this->bytes.size(), value);
+   }
+
+   void writeInt(int value){
+      this->writeIntAt(this->bytes.size(), value);
+   }
+
+   void writeLong(int value){
+      // Write aligned
+      if(this->isRemaster){
+         this->writePadding(8);
+      }
+      this->writeLongAt(this->bytes.size(), value);
+   }
+
+   void writeFloat(float value){
+      this->writeFloatAt(this->bytes.size(), value);
+   }
+
+   void writePadding(int padding){
+      while(this->bytes.size() % padding != 0){
+         this->writeByte(0);
+      }
+   }
+
+   int readInt(int offset){
+      return *reinterpret_cast<int*>(&this->bytes[offset]);
    }
 
    void addOffsetToFixAt(int writeOffsetHere, DataWriter& otherDW, int offsetToWrite){
@@ -180,7 +246,15 @@ public:
 
    void writeOffsetToFix(DataWriter& otherDW, int offsetToWrite){
       this->addOffsetToFixAt(this->bytes.size(), otherDW, offsetToWrite);
-      this->write<int>(-1);
+      this->writeInt(-1);
+      if(this->isRemaster){
+         this->writeInt(0);
+      }
+   }
+
+   void writeOffsetToFixForceInt(DataWriter& otherDW, int offsetToWrite){
+      this->addOffsetToFixAt(this->bytes.size(), otherDW, offsetToWrite);
+      this->writeInt(-1);
    }
 
    void replaceOffsetToFix(int writeOffsetHere, DataWriter& otherDW, int offsetToWrite){
@@ -204,9 +278,7 @@ public:
          this->bytes.insert(this->bytes.end(), dw->bytes.begin(), dw->bytes.end());
 
          if(dw->padToMultiple != 0){
-            while(this->bytes.size() % dw->padToMultiple != 0){
-               this->write<byte>(0);
-            }
+            this->writePadding(dw->padToMultiple);
          }
       }
 
@@ -216,7 +288,7 @@ public:
          for(OffsetToFix& offsetToFix : dw->offsetsToFix){
             int writeOffsetHere = offsetToFix.writeOffsetHere + dw->finalOffset;
             int readThisOffset = offsetToFix.readThisOffset + offsetToFix.dwSource->finalOffset;
-            this->writeAt<int>(writeOffsetHere, readThisOffset);
+            this->writeIntAt(writeOffsetHere, readThisOffset);
 
             offsetList.push_back(writeOffsetHere);
          }
