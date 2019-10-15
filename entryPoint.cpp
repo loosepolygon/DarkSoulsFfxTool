@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-int jsonVersion = 5; // Change
+int jsonVersion = 5;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
@@ -44,29 +44,9 @@ void argError(const std::wstring& text){
 
    fwprintf_s(stderr, L"%s\n", outputText.c_str());
    system("pause");
-   exit(1);
+   throw;
 }
 
-
-std::vector<byte> getFileBytes(const std::wstring& filePath){
-   std::vector<byte> bytes;
-
-   FILE* file = _wfopen(filePath.c_str(), L"rb");
-   if(file == NULL) {
-      ffxReadError(filePath, L"Cannot open file");
-   }else{
-      fseek(file, 0, SEEK_END);
-      long fileSize = ftell(file);
-      fseek(file, 0, SEEK_SET);
-
-      bytes.resize(fileSize);
-      fread(bytes.data(), 1, bytes.size(), file);
-
-      fclose(file);
-   }
-
-   return std::move(bytes);
-}
 
 void importEveryFfx(std::wstring originalDir, std::wstring jsonDir){
    std::wstring dirArg = L"mkdir " + jsonDir;

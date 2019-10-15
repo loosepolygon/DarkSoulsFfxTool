@@ -24,16 +24,16 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
    bool isRemaster = root["gameVersion"].ToString() == "DSR";
 
-   DataWriter dwMain(isRemaster);
-   DataWriter dwMainASTs(isRemaster);
-   DataWriter dwHouses(isRemaster);
-   DataWriter dwLinks(isRemaster);
-   DataWriter dwBlossoms(isRemaster);
-   DataWriter dwSubDataAndPond3s(isRemaster);
-   DataWriter dwData3s(isRemaster);
-   DataWriter dwLinkData3s(isRemaster);
+   DataWriter dwMain(isRemaster, ffxPath);
+   DataWriter dwMainASTs(isRemaster, ffxPath);
+   DataWriter dwHouses(isRemaster, ffxPath);
+   DataWriter dwLinks(isRemaster, ffxPath);
+   DataWriter dwBlossoms(isRemaster, ffxPath);
+   DataWriter dwSubDataAndPond3s(isRemaster, ffxPath);
+   DataWriter dwData3s(isRemaster, ffxPath);
+   DataWriter dwLinkData3s(isRemaster, ffxPath);
    std::vector<DataWriter*> dwPond1Arrays;
-   DataWriter dwType1Pond3AndSomeSubdata(isRemaster);
+   DataWriter dwType1Pond3AndSomeSubdata(isRemaster, ffxPath);
    std::vector<DataWriter*> dwPond2Stuff;
 
    // offsetList contains all offsets to be written at the end of the file;
@@ -278,7 +278,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dw.writeIntAt(posData3Count, data3Count);
          dw.writeIntAt(posData3Count2, data3Count); // Fromsoft
 
-         dwPond1Arrays.push_back(new DataWriter(isRemaster));
+         dwPond1Arrays.push_back(new DataWriter(isRemaster, ffxPath));
          DataWriter* dwPond1Array = dwPond1Arrays.back();
          dw.addOffsetToFixAt(posPond1Offset, *dwPond1Array, 0);
 
@@ -350,10 +350,10 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             }
          }
       }else if(astType == 2){
-         DataWriter* dwPond2 = new DataWriter(isRemaster);
-         DataWriter* dwPreDataNumbers = new DataWriter(isRemaster);
-         DataWriter* dwPreDataSubtypes = new DataWriter(isRemaster);
-         DataWriter* dwSubtypeData = new DataWriter(isRemaster);
+         DataWriter* dwPond2 = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwPreDataNumbers = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwPreDataSubtypes = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwSubtypeData = new DataWriter(isRemaster, ffxPath);
          dwPond2Stuff.push_back(dwPond2);
          dwPond2Stuff.push_back(dwPreDataNumbers);
          dwPond2Stuff.push_back(dwPreDataSubtypes);
@@ -832,7 +832,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       dwMain.writeLong(root["ffxId"].ToInt());
       dwMain.writeLong(0);
 
-      DataWriter* dwType133OffsetArray = new DataWriter(isRemaster);
+      DataWriter* dwType133OffsetArray = new DataWriter(isRemaster, ffxPath);
       dwPond1Arrays.emplace_back(dwType133OffsetArray);
 
       dwMain.writeOffsetToFix(*dwType133OffsetArray, 0);

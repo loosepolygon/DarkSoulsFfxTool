@@ -42,7 +42,7 @@ std::vector<std::wstring> getFileNamesInDir(std::wstring path){
    );
 
    if(hFind == INVALID_HANDLE_VALUE){
-      throw;
+      return fileNames;
    }
 
    if(!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)){
@@ -58,4 +58,24 @@ std::vector<std::wstring> getFileNamesInDir(std::wstring path){
    FindClose(hFind);
 
    return std::move(fileNames);
+}
+
+std::vector<byte> getFileBytes(const std::wstring& filePath){
+   std::vector<byte> bytes;
+
+   FILE* file = _wfopen(filePath.c_str(), L"rb");
+   if(file == NULL) {
+      ffxReadError(filePath, L"Cannot open file");
+   }else{
+      fseek(file, 0, SEEK_END);
+      long fileSize = ftell(file);
+      fseek(file, 0, SEEK_SET);
+
+      bytes.resize(fileSize);
+      fread(bytes.data(), 1, bytes.size(), file);
+
+      fclose(file);
+   }
+
+   return std::move(bytes);
 }

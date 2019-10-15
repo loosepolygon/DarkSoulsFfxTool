@@ -46,6 +46,7 @@ struct TestFunctions{
 void getPathInfo(const std::wstring& path, std::wstring& dir, std::wstring& fileName);
 std::wstring getExtension(const std::wstring& path);
 std::vector<std::wstring> getFileNamesInDir(std::wstring path);
+std::vector<byte> getFileBytes(const std::wstring& filePath);
 
 // ffxToJson.cpp
 

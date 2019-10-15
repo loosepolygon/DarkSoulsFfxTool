@@ -40,6 +40,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    int lastByteAfterData3 = 0; // DSR padding
    int astSize;
    int longSize;
+   bool isRemaster;
 
    std::function<json::JSON(int)> readData3;
    std::function<json::JSON(int)> readAST;
@@ -320,8 +321,8 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
          int value = dr.readLong();
-         data3["unk1"] = reinterpret_cast<short*>((&value))[0];
-         data3["unk2"] = reinterpret_cast<short*>((&value))[1];
+         data3["unk1"] = reinterpret_cast<short*>(&value)[0];
+         data3["unk2"] = reinterpret_cast<short*>(&value)[1];
       }else if(type == 128){
          int data3Offset = dr.readLong();
 
@@ -358,7 +359,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
       bool flag2 = (bool)dr.readByte();
       bool flag3 = (bool)dr.readByte();
       dr.readByte();
-      if(dr.isRemaster) dr.readInt(); // 0xcdcdcdcd
+      if(isRemaster) dr.readInt(); // 0xcdcdcdcd
       int pond2Offset = dr.readLong();
       int pond3Offset = dr.readLong();
 
@@ -453,7 +454,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
       if(pond2Offset){
          json::JSON* currentObject = nullptr;
-         int headerBeforeDR = dr.isRemaster ? 40 : 24;
+         int headerBeforeDR = isRemaster ? 40 : 24;
 
          auto readZero = [&]() -> void{
             drP.readInt();
@@ -629,7 +630,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          drP.bytesRead.resize(0);
          drP.bytesRead.resize(drP.bytes.size());
          drP.marker = 0;
-         drP.isRemaster = dr.isRemaster;
+         drP.isRemaster = isRemaster;
          drP.path = dr.path;
 
          // Read padding after subtype data
@@ -664,7 +665,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readZero();
             readFloat();
-            if(dr.isRemaster) readZero(); // ??? maybe it rounds to nearest 16 in both versions?
+            if(isRemaster) readZero(); // ??? maybe it rounds to nearest 16 in both versions?
             readInt("texId");
             readInt();
             readZero();
@@ -674,7 +675,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
 
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
                readFloat();
@@ -735,7 +736,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readSubtypes(2);
             readInt();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
                readFloat();
@@ -779,7 +780,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readZero();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
                readFloat();
@@ -811,7 +812,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readZero();
             readZero();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
                readFloat();
@@ -828,12 +829,12 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
-            if(dr.isRemaster){
+            if(isRemaster){
                readLong();
             }
             readSubtypes(26);
             readZero();
-            if(dr.isRemaster){
+            if(isRemaster){
                readZero();
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
@@ -850,7 +851,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readInt();
             readFloat();
-            if(dr.isRemaster) readZero(); // ??? another round to 8?
+            if(isRemaster) readZero(); // ??? another round to 8?
             readInt("texId1");
             readInt("texId2");
             readInt("texId3");
@@ -863,7 +864,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readZero();
             readZero();
             readZero();
-            if(dr.isRemaster){
+            if(isRemaster){
                readZero();
                readZero();
                readZero();
@@ -876,7 +877,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterDataFromHere");
                readSubtypes(4);
                readFloat();
@@ -892,7 +893,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readInt();
             readFloat();
-            if(dr.isRemaster) readZero(); // ???
+            if(isRemaster) readZero(); // ???
             readInt("texId");
             readInt();
             readInt();
@@ -902,7 +903,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readInt();
             readSubtypes(10);
-            if(dr.isRemaster){
+            if(isRemaster){
                readInt("remaster1");
                readInt("remaster2");
                readInt("remaster3");
@@ -920,7 +921,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterFromHere");
                readSubtypes(4);
                readFloat();
@@ -955,7 +956,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readFloat();
             readInt();
             readFloat();
-            if(dr.isRemaster) readZero(); // ???
+            if(isRemaster) readZero(); // ???
             readInt("modelId");
             readInt();
             readInt();
@@ -989,7 +990,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             readInt();
             readFloat();
             readInt();
-            if(dr.isRemaster){
+            if(isRemaster){
                readSubtype("remasterFromHere");
                readSubtypes(4);
                readFloat();
@@ -1010,21 +1011,25 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          }
 
          // Read padding before subtype data
-         if(dr.isRemaster) drP.readPadding(8);
+         if(isRemaster) drP.readPadding(8);
 
          // Test if all bytes are read exactly once
          for(size_t b = 0; b < drP.bytesRead.size(); ++b){
             if(drP.bytesRead[b] == 0){
-               printf("Byte not read at 0x%X (%d)\n", b, b);
-               throw;
+               wchar_t wBuffer[80];
+               swprintf(wBuffer, sizeof(wBuffer), L"Byte not read at 0x%X (%d)\n", b, b);
+               ffxReadError(ffxPath, wBuffer);
             }else if(drP.bytesRead[b] > 1){
-               printf(
-                  "Byte read %d times at 0x%X (%d)\n",
+               wchar_t wBuffer[80];
+               swprintf(
+                  wBuffer,
+                  sizeof(wBuffer),
+                  L"Byte read %d times at 0x%X (%d)\n",
                   drP.bytesRead[b],
                   b + pond2Offset + headerSize,
                   b + pond2Offset + headerSize
                );
-               throw;
+               ffxReadError(ffxPath, wBuffer);
             }
          }
 
@@ -1050,7 +1055,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    int version = (int)((short*)(&versionRaw))[1];
    int dataStartAfterHeader = dr.readInt();
 
-   bool isRemaster = dataStartAfterHeader != 32;
+   isRemaster = dataStartAfterHeader != 32;
    root["gameVersion"] = isRemaster ? "DSR" : "PTD";
    if(isRemaster){
       dr.isRemaster = true;
@@ -1171,15 +1176,15 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    }
 
    // Mark some padding as read
-   if(!dr.isRemaster && lastPond1Data3Offset != 0){
+   if(!isRemaster && lastPond1Data3Offset != 0){
       dr.readPadding(16, lastPond1Data3Offset + 4);
    }
-   if(dr.isRemaster && lastByteAfterData3 != 0){
+   if(isRemaster && lastByteAfterData3 != 0){
       dr.readPadding(16, lastByteAfterData3);
    }
 
    // Round a section to 8 because there's a long after
-   if(dr.isRemaster && lastByteAfterSubDataAndPond3s != 0){
+   if(isRemaster && lastByteAfterSubDataAndPond3s != 0){
       dr.readPadding(8, lastByteAfterSubDataAndPond3s);
    }
 
@@ -1204,11 +1209,13 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
    // Test if all bytes are read exactly once
    for(size_t b = 0; b < dr.bytesRead.size(); ++b){
       if(dr.bytesRead[b] == 0){
-         printf("Byte not read at 0x%X (%d)\n", b, b);
-         throw;
+         wchar_t wBuffer[80];
+         swprintf(wBuffer, sizeof(wBuffer), L"Byte not read at 0x%X (%d)\n", b, b);
+         ffxReadError(ffxPath, wBuffer);
       }else if(dr.bytesRead[b] > 1){
-         printf("Byte read %d times at 0x%X (%d)\n", dr.bytesRead[b], b, b);
-         throw;
+         wchar_t wBuffer[80];
+         swprintf(wBuffer, sizeof(wBuffer), L"Byte read %d times at 0x%X (%d)\n", dr.bytesRead[b], b, b);
+         ffxReadError(ffxPath, wBuffer);
       }
    }
 

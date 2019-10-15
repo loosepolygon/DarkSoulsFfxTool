@@ -70,7 +70,6 @@ struct DataReader{
       // of Data3 T138 that were bad longs except the first one so I gave up
       if(secondHalf != 0 && secondHalf != 0xcdcdcdcd){
          ffxReadError(this->path, L"readLong's second half not 0 or cdcdcdcd");
-         throw;
       }
       return *reinterpret_cast<int*>(&this->bytes[addr]);
    }
@@ -98,7 +97,6 @@ struct DataReader{
       this->marker = addr + 8;
       if(*reinterpret_cast<int*>(&this->bytes[addr + 4]) != 0xcdcdcdcd){
          ffxReadError(this->path, L"readBadFloat's second half incorrect");
-         throw;
       }
       return *reinterpret_cast<float*>(&this->bytes[addr]);
    }
@@ -153,8 +151,9 @@ public:
    int finalOffset = 0;
    int padToMultiple = 0;
    bool isRemaster = false;
+   std::wstring path;
 
-   DataWriter(bool isRemaster) : isRemaster(isRemaster){}
+   DataWriter(bool isRemaster, std::wstring path) : isRemaster(isRemaster), path(path){}
    
    void writeByteAt(int offset, byte value){
       if(this->bytes.size() < offset + sizeof(byte)){
@@ -267,8 +266,7 @@ public:
          }
       }
 
-      // Didn't find offset
-      throw;
+      ffxReadError(this->path, L"replaceOffsetToFix didn't find offset");
    }
 
    void merge(std::vector<DataWriter*> dataWriters, std::vector<int>& offsetList){
