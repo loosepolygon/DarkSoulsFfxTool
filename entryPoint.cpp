@@ -44,7 +44,7 @@ void argError(const std::wstring& text){
 
    fwprintf_s(stderr, L"%s\n", outputText.c_str());
    system("pause");
-   throw;
+   exit(0);
 }
 
 void mainProgram(int argCount, wchar_t** args){
