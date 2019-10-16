@@ -126,6 +126,7 @@
     <ClCompile Include="ffxToJson.cpp" />
     <ClCompile Include="json.cpp" />
     <ClCompile Include="jsonToFfx.cpp" />
+    <ClCompile Include="testing.cpp" />
     <ClCompile Include="utility.cpp" />
   </ItemGroup>
   <ItemGroup>

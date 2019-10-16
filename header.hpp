@@ -56,6 +56,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
 void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 
+// testing.cpp
+
+void testing();
+
 // entryPoint.cpp
 
 extern int jsonVersion;
