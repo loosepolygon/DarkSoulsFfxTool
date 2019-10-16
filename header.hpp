@@ -43,11 +43,10 @@ struct TestFunctions{
 
 // utility.cpp
 
-#include "utility.inl"
-
 void getPathInfo(const std::wstring& path, std::wstring& dir, std::wstring& fileName);
 std::wstring getExtension(const std::wstring& path);
 std::vector<std::wstring> getFileNamesInDir(std::wstring path);
+std::vector<byte> getFileBytes(const std::wstring& filePath);
 
 // ffxToJson.cpp
 
@@ -57,6 +56,10 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
 void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 
+// testing.cpp
+
+void testing();
+
 // entryPoint.cpp
 
 extern int jsonVersion;
@@ -65,3 +68,5 @@ void ffxReadError(const std::wstring& path, const std::wstring& text);
 void ffxWriteError(const std::wstring& path, const std::wstring& text);
 void jsonReadError(const std::wstring& path, const std::wstring& text);
 void jsonWriteError(const std::wstring& path, const std::wstring& text);
+
+#include "utility.inl"

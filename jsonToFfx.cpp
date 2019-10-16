@@ -22,24 +22,30 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       jsonReadError(jsonPath, L"jsonVersion not compatible with this reader");
    }
 
-   DataWriter dwMain;
-   DataWriter dwMainASTs;
-   DataWriter dwHouses;
-   DataWriter dwLinks;
-   DataWriter dwBlossoms;
-   DataWriter dwSubDataAndPond3s;
-   DataWriter dwData3s;
-   DataWriter dwLinkData3s;
+   bool isRemaster = root["gameVersion"].ToString() == "DSR";
+
+   DataWriter dwMain(isRemaster, ffxPath);
+   DataWriter dwMainASTs(isRemaster, ffxPath);
+   DataWriter dwHouses(isRemaster, ffxPath);
+   DataWriter dwLinks(isRemaster, ffxPath);
+   DataWriter dwBlossoms(isRemaster, ffxPath);
+   DataWriter dwSubDataAndPond3s(isRemaster, ffxPath);
+   DataWriter dwData3s(isRemaster, ffxPath);
+   DataWriter dwLinkData3s(isRemaster, ffxPath);
    std::vector<DataWriter*> dwPond1Arrays;
-   DataWriter dwType1Pond3AndSomeSubdata;
+   DataWriter dwType1Pond3AndSomeSubdata(isRemaster, ffxPath);
    std::vector<DataWriter*> dwPond2Stuff;
 
+   // offsetList contains all offsets to be written at the end of the file;
+   // DataWriter::Merge adds the majority of the offsets
    std::vector<int> offsetList;
    std::vector<int> firstData3Offsets; // Types 133 and 134
    std::vector<int> data3Offsets;
    std::vector<int> linkData3Offsets;
 
    wchar_t wBuffer[200];
+
+   int longSize = isRemaster ? 8 : 4;
 
    std::function<void(DataWriter&, DataWriter*, json::JSON&)> writeData3;
    std::function<void(json::JSON&)> writeMainAST;
@@ -57,32 +63,37 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          dwPond1Array->writeOffsetToFix(dw, dw.bytes.size());
       }
 
-      dw.write<int>(type);
+      dw.writeLong(type);
 
       if(type == 112 || type == 113 || type == 129 || type == 130 || type == 131 || type == 132 || type == 136){
          // empty
-      }else if(type == 1 || type == 59 || type == 66 || type == 68 || type == 111 || type == 138 || type == 139){
-         dw.write<int>(data3["unk1"].ToInt());
+      }else if(
+         type == 1 || type == 41 || type == 59 || type == 66 || type == 68 || type == 69 ||
+         type == 111 || type == 138 || type == 139
+      ){
+         dw.writeLong(data3["unk1"].ToInt());
       }else if(type == 7 || type == 70){
-         dw.write<float>(data3["unk1"].ToFloat());
+         dw.writeFloat(data3["unk1"].ToFloat());
+         if(isRemaster) dw.writeInt(0);
       }else if(type == 79 || type == 140){
-         dw.write<int>(data3["unk1"].ToInt());
-         dw.write<int>(data3["unk2"].ToInt());
+         dw.writeInt(data3["unk1"].ToInt());
+         dw.writeInt(data3["unk2"].ToInt());
       }else if(type == 81 || type == 85){
-         dw.write<float>(data3["unk1"].ToFloat());
-         dw.write<float>(data3["unk2"].ToFloat());
+         dw.writeFloat(data3["unk1"].ToFloat());
+         dw.writeFloat(data3["unk2"].ToFloat());
       }else if(type == 137){
-         dw.write<int>(data3["unk1"].ToInt());
-         dw.write<int>(data3["unk2"].ToInt());
-         dw.write<int>(data3["unk3"].ToInt());
+         // This type is not seen in DSR
+         dw.writeInt(data3["unk1"].ToInt());
+         dw.writeInt(data3["unk2"].ToInt());
+         dw.writeInt(data3["unk3"].ToInt());
       }else if(type == 2){
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
 
          int count = data3["bunchaInts"].size();
-         dw.write<int>(count);
+         dw.writeLong(count);
 
          for(json::JSON& value : data3["bunchaInts"].ArrayRange()){
-            dwSubDataAndPond3s.write<int>(value.ToInt());
+            dwSubDataAndPond3s.writeInt(value.ToInt());
          }
       }else if(type == 3 || type == 5 || type == 6 || type == 9 || type == 89){
          int floatCount = data3["floats"].size();
@@ -94,19 +105,19 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floats"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["ints"].ArrayRange()){
-            dwSubDataAndPond3s.write<int>(value.ToInt());
+            dwSubDataAndPond3s.writeInt(value.ToInt());
          }
          
-         dw.write<int>(floatCount);
+         dw.writeLong(floatCount);
 
          if(type == 89){
-            dw.write<int>(data3["unk1"].ToInt());
-            dw.write<int>(data3["unk2"].ToInt());
+            dw.writeLong(data3["unk1"].ToInt());
+            dw.writeLong(data3["unk2"].ToInt());
          }
       }else if(type == 11 || type == 12 || type == 91 || type == 95){
          int floatCountA = data3["floatsA"].size();
@@ -118,20 +129,21 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floatsA"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floatsB"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
-         dw.write<int>(floatCountA);
+         dw.writeLong(floatCountA);
 
+         // These types are not seen in DSR
          if(type == 91 || type == 95){
-            dw.write<int>(data3["unk1"].ToInt());
+            dw.writeLong(data3["unk1"].ToInt());
 
-            dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
+            dw.writeOffsetToFix(dw, dw.bytes.size() + longSize);
             writeData3(dw, nullptr, data3["data3"]);
          }
       }else if(type == 13 || type == 14){
@@ -144,16 +156,16 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floatsA"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floatsB"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
-         dw.write<int>(floatCountA);
-      }else if(type == 19 || type == 20){
+         dw.writeLong(floatCountA);
+      }else if(type == 19 || type == 20 || type == 27 || type == 28){
          int floatCountA = data3["floatsA"].size();
          int floatCountB = data3["floatsB"].size();
          if(floatCountA * 4 != floatCountB){
@@ -163,51 +175,71 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
          for(json::JSON& value : data3["floatsA"].ArrayRange()){
-            dwSubDataAndPond3s.write<float>(value.ToFloat());
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
          }
 
          dw.writeOffsetToFix(dwType1Pond3AndSomeSubdata, dwType1Pond3AndSomeSubdata.bytes.size());
          for(json::JSON& value : data3["floatsB"].ArrayRange()){
-            dwType1Pond3AndSomeSubdata.write<float>(value.ToFloat());
+            dwType1Pond3AndSomeSubdata.writeFloat(value.ToFloat());
          }
 
-         dw.write<int>(floatCountA);
+         dw.writeLong(floatCountA);
+      }else if(type == 21 || type == 22 || type == 29){
+         int floatCountA = data3["floatsA"].size();
+         int floatCountB = data3["floatsB"].size();
+         if(floatCountA * 12 != floatCountB){
+            swprintf(wBuffer, sizeof(wBuffer), L"Data3 type %d count mismatch", type);
+            jsonReadError(ffxPath, wBuffer);
+         }
+
+         dw.writeOffsetToFix(dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
+         for(json::JSON& value : data3["floatsA"].ArrayRange()){
+            dwSubDataAndPond3s.writeFloat(value.ToFloat());
+         }
+
+         dw.writeOffsetToFix(dwType1Pond3AndSomeSubdata, dwType1Pond3AndSomeSubdata.bytes.size());
+         for(json::JSON& value : data3["floatsB"].ArrayRange()){
+            dwType1Pond3AndSomeSubdata.writeFloat(value.ToFloat());
+         }
+
+         dw.writeLong(floatCountA);
       }else if(type == 37){
-         dw.write<int>(data3["templateFfxId"].ToInt());
+         dw.writeLong(data3["templateFfxId"].ToInt());
 
          int templateASTIndex = data3["templateASTIndex"].ToInt();
          if(templateASTIndex == -1){
-            dw.write<int>(0);
-            dw.write<int>(0);
+            dw.writeLong(0);
+            dw.writeLong(0);
          }else{
             dw.writeOffsetToFix(dwMainASTs, dwMainASTs.bytes.size());
-            dw.write<int>(0);
+            dw.writeLong(0);
 
             writeMainAST(root["templateASTs"][templateASTIndex]);
          }
       }else if(type == 38){
-         dw.write<int>(data3["t38Subtype"].ToInt());
+         dw.writeLong(data3["t38Subtype"].ToInt());
 
          json::JSON& ast = data3["ast"];
          if(ast.size() == 0){
-            dw.write<int>(0);
-            dw.write<int>(0);
+            dw.writeLong(0);
+            dw.writeLong(0);
          }else{
             dw.writeOffsetToFix(dwMainASTs, dwMainASTs.bytes.size());
-            dw.write<int>(0);
+            dw.writeLong(0);
 
             writeMainAST(ast);
          }
       }else if(type == 44 || type == 45 || type == 46 || type == 47 || type == 60 || type == 71 || type == 87 || type == 114 || type == 115){
-         dw.write<short>(data3["unk1"].ToInt());
-         dw.write<short>(data3["unk2"].ToInt());
+         dw.writeShort(data3["unk1"].ToInt());
+         dw.writeShort(data3["unk2"].ToInt());
+         if(isRemaster) dw.writeInt(0);
       }else if(type == 128){
-         dw.writeOffsetToFix(dw, dw.bytes.size() + 4);
+         dw.writeOffsetToFix(dw, dw.bytes.size() + longSize);
          writeData3(dw, nullptr, data3["data3"]);
       }else if(type == 120 || type == 121 || type == 122 || type == 123 || type == 124 || type == 126 || type == 127){
-         dw.writeOffsetToFix(dw, dw.bytes.size() + 8);
+         dw.writeOffsetToFix(dw, dw.bytes.size() + longSize * 2);
          int offsetB = dw.bytes.size();
-         dw.write<int>(-1);
+         dw.writeLong(-1);
          writeData3(dw, nullptr, data3["data3A"]);
 
          dw.addOffsetToFixAt(offsetB, dw, dw.bytes.size());
@@ -224,24 +256,31 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       if(ast["flag2"].ToBool()) flags |= 0x100;
       if(ast["flag3"].ToBool()) flags |= 0x10000;
 
-      dw.writeAt<int>(astOffset + 0,  0);
-      dw.writeAt<int>(astOffset + 4,  0);
-      dw.writeAt<int>(astOffset + 8,  0);
-      dw.writeAt<int>(astOffset + 12, flags);
-      dw.writeAt<int>(astOffset + 16, 0);
-      dw.writeAt<int>(astOffset + 20, 0);
+      int posPond1Offset = astOffset;
+      int posData3Count =  astOffset + (isRemaster ? 8 : 4);
+      int posData3Count2 = astOffset + (isRemaster ? 12 : 8);
+      int posflags =       astOffset + (isRemaster ? 16 : 12);
+      int posPond2Offset = astOffset + (isRemaster ? 24 : 16);
+      int posPond3Offset = astOffset + (isRemaster ? 32 : 20);
+
+      dw.writeLongAt(posPond1Offset, 0);
+      dw.writeIntAt(posData3Count, 0);
+      dw.writeIntAt(posData3Count2, 0);
+      dw.writeLongAt(posflags, flags);
+      dw.writeLongAt(posPond2Offset, 0);
+      dw.writeLongAt(posPond3Offset, 0);
 
       int astType = ast["astType"].ToInt();
       if(astType == 0){
          // Empty
       }else if(astType == 1){
          int data3Count = ast["pond1Data3s"].size();
-         dw.writeAt<int>(astOffset + 4, data3Count);
-         dw.writeAt<int>(astOffset + 8, data3Count); // Fromsoft
+         dw.writeIntAt(posData3Count, data3Count);
+         dw.writeIntAt(posData3Count2, data3Count); // Fromsoft
 
-         dwPond1Arrays.push_back(new DataWriter);
+         dwPond1Arrays.push_back(new DataWriter(isRemaster, ffxPath));
          DataWriter* dwPond1Array = dwPond1Arrays.back();
-         dw.addOffsetToFixAt(astOffset + 0, *dwPond1Array, 0);
+         dw.addOffsetToFixAt(posPond1Offset, *dwPond1Array, 0);
 
          for(int d = 0; d < data3Count; ++d){
             json::JSON& data3 = ast["pond1Data3s"][d];
@@ -254,136 +293,148 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             int type = pond3["pond3Type"].ToInt();
 
             if(type == 1){
-               dw.addOffsetToFixAt(astOffset + 20, dwType1Pond3AndSomeSubdata, dwType1Pond3AndSomeSubdata.bytes.size());
-               dwType1Pond3AndSomeSubdata.write<int>(type);
+               dw.addOffsetToFixAt(
+                  posPond3Offset,
+                  dwType1Pond3AndSomeSubdata,
+                  dwType1Pond3AndSomeSubdata.bytes.size()
+               );
+               dwType1Pond3AndSomeSubdata.writeInt(type);
             }else{
-               dw.addOffsetToFixAt(astOffset + 20, dwSubDataAndPond3s, dwSubDataAndPond3s.bytes.size());
-               dwSubDataAndPond3s.write<int>(type);
+               dw.addOffsetToFixAt(
+                  posPond3Offset,
+                  dwSubDataAndPond3s,
+                  dwSubDataAndPond3s.bytes.size()
+               );
+               dwSubDataAndPond3s.writeInt(type);
             }
 
             if(type == 0){
-               dwSubDataAndPond3s.write<int>(pond3["astCountMaybe"].ToInt());
+               dwSubDataAndPond3s.writeInt(pond3["astCountMaybe"].ToInt());
             }else if(type == 1){
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk1"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk2"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk3"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["offsetX"].ToFloat());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["offsetY"].ToFloat());
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk6"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk7"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<int>(pond3["unk8"].ToInt());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk9"].ToFloat());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk10"].ToFloat());
-               dwType1Pond3AndSomeSubdata.write<float>(pond3["unk11"].ToFloat());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk1"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk2"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk3"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeFloat(pond3["offsetX"].ToFloat());
+               dwType1Pond3AndSomeSubdata.writeFloat(pond3["offsetY"].ToFloat());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk6"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk7"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeInt(pond3["unk8"].ToInt());
+               dwType1Pond3AndSomeSubdata.writeFloat(pond3["unk9"].ToFloat());
+               dwType1Pond3AndSomeSubdata.writeFloat(pond3["unk10"].ToFloat());
+               dwType1Pond3AndSomeSubdata.writeFloat(pond3["unk11"].ToFloat());
             }else if(type == 2){
-               dwSubDataAndPond3s.write<float>(pond3["lifetime"].ToFloat());
-               dwSubDataAndPond3s.write<float>(pond3["unk2"].ToFloat());
-               dwSubDataAndPond3s.write<int>(pond3["unk3"].ToInt());
-               dwSubDataAndPond3s.write<float>(pond3["unk4"].ToFloat());
-               dwSubDataAndPond3s.write<byte>(pond3["unk5"].ToInt());
-               dwSubDataAndPond3s.write<byte>(pond3["unk6"].ToInt());
-               dwSubDataAndPond3s.write<short>(0);
+               dwSubDataAndPond3s.writeFloat(pond3["lifetime"].ToFloat());
+               dwSubDataAndPond3s.writeFloat(pond3["unk2"].ToFloat());
+               dwSubDataAndPond3s.writeInt(pond3["unk3"].ToInt());
+               dwSubDataAndPond3s.writeFloat(pond3["unk4"].ToFloat());
+               dwSubDataAndPond3s.writeByte(pond3["unk5"].ToInt());
+               dwSubDataAndPond3s.writeByte(pond3["unk6"].ToInt());
+               dwSubDataAndPond3s.writeShort(0);
             }else if(type == 3){
-               dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
-               dwSubDataAndPond3s.write<int>(pond3["unk2"].ToInt());
-               dwSubDataAndPond3s.write<float>(pond3["unk3"].ToFloat());
-               dwSubDataAndPond3s.write<int>(pond3["unk4"].ToInt());
+               dwSubDataAndPond3s.writeFloat(pond3["unk1"].ToFloat());
+               dwSubDataAndPond3s.writeInt(pond3["unk2"].ToInt());
+               dwSubDataAndPond3s.writeFloat(pond3["unk3"].ToFloat());
+               dwSubDataAndPond3s.writeInt(pond3["unk4"].ToInt());
             }else if(type == 4){
-               dwSubDataAndPond3s.write<int>(pond3["unk1"].ToInt());
+               dwSubDataAndPond3s.writeInt(pond3["unk1"].ToInt());
             }else if(type == 5){
-               dwSubDataAndPond3s.write<int>(pond3["unk1"].ToInt());
+               dwSubDataAndPond3s.writeInt(pond3["unk1"].ToInt());
             }else if(type == 6){
-               dwSubDataAndPond3s.write<float>(pond3["unk1"].ToFloat());
-               dwSubDataAndPond3s.write<int>(pond3["unk2"].ToInt());
+               dwSubDataAndPond3s.writeFloat(pond3["unk1"].ToFloat());
+               dwSubDataAndPond3s.writeInt(pond3["unk2"].ToInt());
             }else if(type == 7){
-               dwSubDataAndPond3s.write<int>(pond3["unk1"].ToInt());
+               dwSubDataAndPond3s.writeInt(pond3["unk1"].ToInt());
             }else{
                swprintf(wBuffer, sizeof(wBuffer), L"Pond3 type %d umfamiliar", type);
                jsonReadError(ffxPath, wBuffer);
             }
          }
       }else if(astType == 2){
-         DataWriter* dwPond2 = new DataWriter;
-         DataWriter* dwPreDataNumbers = new DataWriter;
-         DataWriter* dwPreDataSubtypes = new DataWriter;
-         DataWriter* dwSubtypeData = new DataWriter;
+         DataWriter* dwPond2 = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwPreDataNumbers = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwPreDataSubtypes = new DataWriter(isRemaster, ffxPath);
+         DataWriter* dwSubtypeData = new DataWriter(isRemaster, ffxPath);
          dwPond2Stuff.push_back(dwPond2);
          dwPond2Stuff.push_back(dwPreDataNumbers);
          dwPond2Stuff.push_back(dwPreDataSubtypes);
          dwPond2Stuff.push_back(dwSubtypeData);
 
+         if(isRemaster){
+            dwPreDataSubtypes->padToMultiple = 8;
+         }
          dwSubtypeData->padToMultiple = 16;
 
-         dw.addOffsetToFixAt(astOffset + 16, *dwPond2, 0);
+         dw.addOffsetToFixAt(posPond2Offset, *dwPond2, 0);
 
          json::JSON& pond2 = ast["pond2"];
          int pond2Type = pond2["pond2Type"].ToInt();
-         dwPond2->write<int>(pond2Type);
-         dwPond2->write<int>(-1); // total size
-         dwPond2->write<int>(pond2["preData"].size());
+         dwPond2->writeInt(pond2Type);
+         dwPond2->writeInt(-1); // total size
+         dwPond2->writeLong(pond2["preData"].size());
          dwPond2->writeOffsetToFix(*dwPreDataNumbers, 0);
          dwPond2->writeOffsetToFix(*dwPreDataSubtypes, 0);
          dwPond2->writeOffsetToFix(dw, astOffset);
 
          auto writeSubtype = [&](DataWriter& dw, json::JSON& obj) -> void{
             int subtype = obj["subtypeType"].ToInt();
-            dw.write<int>(subtype);
+            dw.writeLong(subtype);
 
             if(subtype == 28){
-               dw.write<int>(0);
+               dw.writeLong(0);
             }else{
                dw.writeOffsetToFix(*dwSubtypeData, dwSubtypeData->bytes.size());
             }
 
             bool isCurve = (
                subtype == 0 || subtype == 4 || subtype == 5 || subtype == 6 || subtype == 7 ||
-               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17
+               subtype == 8 || subtype == 9 || subtype == 12 || subtype == 16 || subtype == 17 ||
+               subtype == 20
             );
             if(isCurve){
                bool hasRange = subtype == 5 || subtype == 7 || subtype == 9 || subtype == 17;
                bool hasPreDataIndex = subtype == 6 || subtype == 7;
-               int numArrays = subtype == 8 || subtype == 9 ? 4 : 2;
+               int numArrays = subtype == 8 || subtype == 9 || subtype == 20 ? 4 : 2;
 
-               dwSubtypeData->write<int>(obj["times"].size());
+               dwSubtypeData->writeInt(obj["times"].size());
 
                for(json::JSON& t : obj["times"].ArrayRange()){
-                  dwSubtypeData->write<float>(t.ToFloat());
+                  dwSubtypeData->writeFloat(t.ToFloat());
                }
 
                if(numArrays == 2){
                   for(json::JSON& v : obj["values"].ArrayRange()){
-                     dwSubtypeData->write<float>(v.ToFloat());
+                     dwSubtypeData->writeFloat(v.ToFloat());
                   }
                }else{
                   for(const json::JSON& values : {obj["values1"], obj["values2"], obj["values3"]}){
                      for(const json::JSON& v : values.ArrayRange()){
-                        dwSubtypeData->write<float>(v.ToFloat());
+                        dwSubtypeData->writeFloat(v.ToFloat());
                      }
                   }
                }
 
                if(hasRange){
-                  dwSubtypeData->write<float>(obj["range"][0].ToFloat());
-                  dwSubtypeData->write<float>(obj["range"][1].ToFloat());
+                  dwSubtypeData->writeFloat(obj["range"][0].ToFloat());
+                  dwSubtypeData->writeFloat(obj["range"][1].ToFloat());
                }
 
                if(hasPreDataIndex){
-                  dwSubtypeData->write<int>(obj["preDataIndex"].ToInt());
+                  dwSubtypeData->writeInt(obj["preDataIndex"].ToInt());
                }
             }else if(subtype == 24){
-               dwSubtypeData->write<float>(obj["constant"].ToFloat());
+               dwSubtypeData->writeFloat(obj["constant"].ToFloat());
             }else if(subtype == 25){
-               dwSubtypeData->write<float>(obj["base"].ToFloat());
-               dwSubtypeData->write<float>(obj["unknownA"].ToFloat());
-               dwSubtypeData->write<float>(obj["unknownB"].ToFloat());
+               dwSubtypeData->writeFloat(obj["base"].ToFloat());
+               dwSubtypeData->writeFloat(obj["unknownA"].ToFloat());
+               dwSubtypeData->writeFloat(obj["unknownB"].ToFloat());
             }else if(subtype == 26){
-               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
-               dwSubtypeData->write<int>(obj["unk2"].ToInt());
+               dwSubtypeData->writeFloat(obj["unk1"].ToFloat());
+               dwSubtypeData->writeInt(obj["unk2"].ToInt());
             }else if(subtype == 27){
-               dwSubtypeData->write<float>(obj["unk1"].ToFloat());
-               dwSubtypeData->write<float>(obj["unk2"].ToFloat());
-               dwSubtypeData->write<float>(obj["unk3"].ToFloat());
-               dwSubtypeData->write<int>(obj["preDataIndex"].ToInt());
+               dwSubtypeData->writeFloat(obj["unk1"].ToFloat());
+               dwSubtypeData->writeFloat(obj["unk2"].ToFloat());
+               dwSubtypeData->writeFloat(obj["unk3"].ToFloat());
+               dwSubtypeData->writeInt(obj["preDataIndex"].ToInt());
             }else if(subtype == 28){
                // Empty
             }else{
@@ -393,7 +444,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          };
 
          for(json::JSON& preData : pond2["preData"].ArrayRange()){
-            dwPreDataNumbers->write<int>(preData["number"].ToInt());
+            dwPreDataNumbers->writeInt(preData["number"].ToInt());
             writeSubtype(*dwPreDataSubtypes, preData["subtype"]);
          }
 
@@ -407,22 +458,34 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          varIndex = 0;
 
          auto writeZero = [&]() -> void{
-            dwPond2->write<int>(0);
+            dwPond2->writeInt(0);
          };
          auto writeInt = [&]() -> void{
-            dwPond2->write<int>(vars[varIndex++].ToInt());
+            dwPond2->writeInt(vars[varIndex++].ToInt());
+         };
+         auto writeLong = [&]() -> void{
+            dwPond2->writeLong(vars[varIndex++].ToInt());
          };
          auto writeFloat = [&]() -> void{
-            dwPond2->write<float>(vars[varIndex++].ToFloat());
+            dwPond2->writeFloat(vars[varIndex++].ToFloat());
          };
          auto writeSubtypes = [&](int subtypeCount) -> void{
+            if(isRemaster){
+               dwPond2->writePadding(8);
+            }
+
             for(int n = 0; n < subtypeCount; ++n){
                writeSubtype(*dwPond2, vars[varIndex++]);
             }
          };
+         // Fromsoft... are you ok, do you need a hug
          auto writeSubtypesWithDataOrder = [&](std::vector<int> subtypeOrder) -> void{
             // subtypeOrder index: subtype *data* order
             // subtypeOrder value: subtype index
+
+            if(isRemaster){
+               dwPond2->writePadding(8);
+            }
 
             int pond2OldSize = dwPond2->bytes.size();
             int subtypeDataOldSize = dwSubtypeData->bytes.size();
@@ -446,11 +509,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             for(size_t subtypeDataIndex = 0; subtypeDataIndex < subtypeOrder.size(); ++subtypeDataIndex){
                int subtypeIndex = subtypeOrder[subtypeDataIndex];
 
-               int subtypeOffset = pond2OldSize + subtypeIndex * sizeof(int) * 2;
-               int type = dwPond2->read<int>(subtypeOffset + 0);
+               int subtypeOffset = pond2OldSize + subtypeIndex * longSize * 2;
+               int type = dwPond2->readInt(subtypeOffset + 0);
 
                if(type != 28){
-                  dwPond2->replaceOffsetToFix(subtypeOffset + 4, *dwSubtypeData, dwSubtypeData->bytes.size());
+                  dwPond2->replaceOffsetToFix(subtypeOffset + longSize, *dwSubtypeData, dwSubtypeData->bytes.size());
                   dwSubtypeData->bytes.insert(
                      dwSubtypeData->bytes.end(),
                      subtypeDataCopy.begin() + subtypeDataSlices[subtypeIndex].first,
@@ -460,13 +523,26 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             }
          };
 
+         auto writeRemasterThing = [&]() -> void{
+            if(!isRemaster) return;
+
+            writeSubtypesWithDataOrder({0, 1, 2, 4, 3});
+            writeFloat();
+            writeInt();
+            writeInt();
+            writeInt();
+            writeInt();
+            writeInt();
+         };
+
          if(pond2Type == 27){
             writeFloat();
             writeFloat();
             writeFloat();
             writeZero();
-            writeZero();
-            writeInt();
+            writeFloat();
+            if(isRemaster) writeZero();
+            writeInt(); // texId
             writeInt();
             writeZero();
             writeSubtypes(10);
@@ -474,6 +550,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeInt();
             writeFloat();
+            writeRemasterThing();
          }else if(pond2Type == 28){
             writeSubtypes(3);
             writeInt();
@@ -484,7 +561,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeSubtypes(4);
             writeFloat();
             writeInt();
-            writeInt();
+            writeLong();
          }else if(pond2Type == 31){
             writeSubtypes(4);
             writeInt();
@@ -496,7 +573,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
          }else if(pond2Type == 40){
             writeZero();
             writeFloat();
-            writeInt();
+            writeInt(); // texId
             writeZero();
             writeInt();
             writeInt();
@@ -516,11 +593,12 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeFloat();
             writeSubtypes(2);
             writeInt();
+            writeRemasterThing();
          }else if(pond2Type == 43){
             writeFloat();
             writeZero();
             writeZero();
-            writeInt();
+            writeInt(); // texId
             writeInt();
             writeInt();
             writeInt();
@@ -533,9 +611,9 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeZero();
             writeFloat();
          }else if(pond2Type == 59){
+            writeFloat();
             writeZero();
-            writeZero();
-            writeInt();
+            writeInt(); // texId
             writeZero();
             writeInt();
             writeInt();
@@ -549,10 +627,11 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeFloat();
             writeZero();
+            writeRemasterThing();
          }else if(pond2Type == 61){
             writeZero();
             writeZero();
-            writeInt();
+            writeInt(); // modelId
             writeInt();
             writeInt();
             writeInt();
@@ -571,6 +650,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeZero();
             writeZero();
+            writeRemasterThing();
          }else if(pond2Type == 66){
             writeFloat();
             writeFloat();
@@ -578,17 +658,22 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeFloat();
             writeInt();
+            if(isRemaster){
+               writeLong();
+            }
             writeSubtypes(26);
             writeZero();
+            writeRemasterThing();
          }else if(pond2Type == 70){
             writeFloat();
             writeFloat();
             writeFloat();
             writeInt();
             writeFloat();
-            writeInt();
-            writeInt();
-            writeInt();
+            if(isRemaster) writeZero();
+            writeInt(); // texId1
+            writeInt(); // texId2
+            writeInt(); // texId3
             writeInt();
             writeInt();
             writeInt();
@@ -602,6 +687,12 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeZero();
             writeZero();
             writeZero();
+            if(isRemaster){
+               writeZero();
+               writeZero();
+               writeZero();
+               writeZero();
+            }
             writeInt();
             writeInt();
             writeInt();
@@ -609,14 +700,16 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeFloat();
             writeInt();
+            writeRemasterThing();
          }else if(pond2Type == 71){
             writeFloat();
             writeFloat();
             writeFloat();
             writeInt();
             writeFloat();
+            if(isRemaster) writeZero();
+            writeInt(); // texID
             writeInt();
-            writeZero();
             writeInt();
             writeInt();
             writeInt();
@@ -624,6 +717,12 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeInt();
             writeSubtypesWithDataOrder({2, 3, 4, 5, 6, 7, 8, 9, 0, 1});
+            if(isRemaster){
+               writeInt();
+               writeInt();
+               writeInt();
+               writeInt();
+            }
             writeInt();
             writeZero();
             writeZero();
@@ -636,6 +735,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeFloat();
             writeInt();
+            writeRemasterThing();
          }else if(pond2Type == 84){
             writeSubtypes(3);
             writeZero();
@@ -647,12 +747,12 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeZero();
             writeFloat();
             writeSubtypes(1);
-            writeInt();
+            writeLong();
             writeSubtypes(1);
          }else if(pond2Type == 107){
+            writeFloat();
             writeZero();
-            writeZero();
-            writeInt();
+            writeInt(); // texId
             writeInt();
             writeSubtypes(7);
          }else if(pond2Type == 108){
@@ -661,7 +761,8 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeFloat();
             writeInt();
             writeFloat();
-            writeInt();
+            if(isRemaster) writeZero();
+            writeInt(); // modelId
             writeInt();
             writeInt();
             writeInt();
@@ -675,6 +776,12 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             writeInt();
             writeFloat();
             writeInt();
+            writeRemasterThing();
+         }else if(pond2Type == 117){
+            writeSubtypes(6);
+            writeInt();
+            writeInt();
+            writeSubtypes(1);
          }else{
             jsonReadError(ffxPath, L"pond2 unknown pond2Type");
          }
@@ -685,7 +792,7 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
             dwPreDataSubtypes->bytes.size() +
             dwSubtypeData->bytes.size()
          );
-         dwPond2->writeAt<int>(4, pond2Size);
+         dwPond2->writeIntAt(4, pond2Size);
       }else{
          ffxWriteError(ffxPath, L"Unfamiliar AST type");
       }
@@ -700,38 +807,40 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    };
 
 
-   dwMain.write('F');
-   dwMain.write('X');
-   dwMain.write('R');
-   dwMain.write('\0');
+   dwMain.writeByte('F');
+   dwMain.writeByte('X');
+   dwMain.writeByte('R');
+   dwMain.writeByte('\0');
 
-   dwMain.write<short>(0);
-   dwMain.write<short>(root["ffxVersion"].ToInt());
+   dwMain.writeShort(0);
+   dwMain.writeShort(1);
    offsetList.push_back(dwMain.bytes.size());
-   dwMain.write<int>(32); // dataStartAfterHeader
-   dwMain.write<int>(-1); // data2Start
-   dwMain.write<int>(-1); // data2Count
-   dwMain.write<int>(-1); // data3Count
-   dwMain.write<int>(root["unk1"].ToInt());
-   dwMain.write<int>(root["unk2"].ToInt());
+   dwMain.writeLong(isRemaster ? 48 : 32); // dataStartAfterHeader
+   dwMain.writeInt(-1); // data2Start
+   dwMain.writeInt(-1); // data2Count
+   dwMain.writeInt(-1); // data3Count
+   dwMain.writeInt(root["unk1"].ToInt());
+   dwMain.writeInt(root["unk2"].ToInt());
+   dwMain.writePadding(16);
 
    int t133Count = root["type133s"].size();
    bool needsType134 = t133Count > 1;
    if(needsType134){
       firstData3Offsets.push_back(dwMain.bytes.size());
 
-      dwMain.write<int>(134);
-      dwMain.write<int>(root["ffxId"].ToInt());
-      dwMain.write<int>(0);
+      dwMain.writeLong(134);
+      dwMain.writeLong(root["ffxId"].ToInt());
+      dwMain.writeLong(0);
 
-      DataWriter* dwType133OffsetArray = new DataWriter;
+      DataWriter* dwType133OffsetArray = new DataWriter(isRemaster, ffxPath);
       dwPond1Arrays.emplace_back(dwType133OffsetArray);
 
       dwMain.writeOffsetToFix(*dwType133OffsetArray, 0);
-      dwMain.write<int>(t133Count);
+      dwMain.writeLong(t133Count);
 
+      int t133Size = isRemaster ? 176 : 96;
       for(int n = 0; n < t133Count; ++n){
-         int t133Offset = dwMain.bytes.size() + 96 * n;
+         int t133Offset = dwMain.bytes.size() + t133Size * n;
          dwType133OffsetArray->writeOffsetToFix(dwMain, t133Offset);
       }
    }
@@ -739,18 +848,18 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    for(json::JSON& type133 : root["type133s"].ArrayRange()){
       firstData3Offsets.push_back(dwMain.bytes.size());
 
-      dwMain.write<int>(133);
-      dwMain.write<int>(root["ffxId"].ToInt());
+      dwMain.writeLong(133);
+      dwMain.writeLong(root["ffxId"].ToInt());
       for(int n = 0; n < 7; ++n){
-         dwMain.write<int>(0);
+         dwMain.writeLong(0);
       }
-      dwMain.write<int>(type133["always8Or10"].ToInt());
+      dwMain.writeLong(type133["always8Or10"].ToInt());
       json::JSON& preAST1 = type133["preAST1"];
       json::JSON& preAST2 = type133["preAST2"];
       writeAST(dwMain, preAST1);
       writeAST(dwMain, preAST2);
       dwMain.writeOffsetToFix(dwHouses, dwHouses.bytes.size());
-      dwMain.write<int>(type133["houses"].size());
+      dwMain.writeLong(type133["houses"].size());
 
       json::JSON& houses = type133["houses"];
 
@@ -761,22 +870,22 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
 
          house["_offset"] = dwHouses.bytes.size();
          if(linkCount > 0){
-            dwHouses.write<int>(-1);
+            dwHouses.writeLong(-1);
          }else{
-            dwHouses.write<int>(0);
+            dwHouses.writeLong(0);
          }
 
          if(blossomCount > 0){
             dwHouses.writeOffsetToFix(dwBlossoms, dwBlossoms.bytes.size());
          }else{
-            dwHouses.write<int>(0);
+            dwHouses.writeLong(0);
          }
 
-         dwHouses.write<int>(linkCount);
-         dwHouses.write<int>(blossomCount);
+         dwHouses.writeInt(linkCount);
+         dwHouses.writeInt(blossomCount);
 
          for(json::JSON& blossom : house["blossoms"].ArrayRange()){
-            dwBlossoms.write<int>(blossom["blossomType"].ToInt());
+            dwBlossoms.writeLong(blossom["blossomType"].ToInt());
             writeAST(dwBlossoms, blossom["blossomAST"]);
          }
       }
@@ -809,23 +918,42 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
    if(!dwPond1Arrays.empty()){
       dwPond1Arrays.back()->padToMultiple = 16;
    }
-   std::vector<DataWriter*> dataWriters = {
-      &dwMainASTs,
-      &dwHouses,
-      &dwLinks,
-      &dwBlossoms,
-      &dwSubDataAndPond3s,
-      &dwData3s,
-      &dwLinkData3s,
-      &dwType1Pond3AndSomeSubdata
-   };
-   dataWriters.insert(dataWriters.begin() + 7, dwPond1Arrays.begin(), dwPond1Arrays.end());
-   dataWriters.insert(dataWriters.end() - 0, dwPond2Stuff.begin(), dwPond2Stuff.end());
+   std::vector<DataWriter*> dataWriters;
+   if(isRemaster){
+      if(dwSubDataAndPond3s.bytes.size() > 0){
+         dwSubDataAndPond3s.padToMultiple = 8;
+      }
+      if(dwData3s.bytes.size() > 0){
+         dwData3s.padToMultiple = 16;
+      }
+
+      dataWriters.insert(
+         dataWriters.end(),
+         {
+            &dwMainASTs, &dwHouses, &dwLinks, &dwBlossoms,
+            &dwSubDataAndPond3s, &dwLinkData3s
+         }
+      );
+      dataWriters.insert(dataWriters.end(), dwPond1Arrays.begin(), dwPond1Arrays.end());
+      dataWriters.insert(dataWriters.end(), {&dwData3s, &dwType1Pond3AndSomeSubdata});
+      dataWriters.insert(dataWriters.end(), dwPond2Stuff.begin(), dwPond2Stuff.end());
+   }else{
+      dataWriters.insert(
+         dataWriters.begin(),
+         {
+            &dwMainASTs, &dwHouses, &dwLinks, &dwBlossoms,
+            &dwSubDataAndPond3s, &dwData3s, &dwLinkData3s
+         }
+      );
+      dataWriters.insert(dataWriters.end(), dwPond1Arrays.begin(), dwPond1Arrays.end());
+      dataWriters.push_back(&dwType1Pond3AndSomeSubdata);
+      dataWriters.insert(dataWriters.end(), dwPond2Stuff.begin(), dwPond2Stuff.end());
+   }
    dataWriters.back()->padToMultiple = 16;
    dwMain.merge(dataWriters, offsetList);
 
    // Write offsetList
-   dwMain.writeAt<int>(12, dwMain.bytes.size());
+   dwMain.writeIntAt(isRemaster ? 16 : 12, dwMain.bytes.size());
    std::sort(offsetList.begin(), offsetList.end());
    // Make unique
    for(int n = offsetList.size(); n --> 1;){
@@ -836,22 +964,22 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath){
       }
    }
    for(int offset : offsetList){
-      dwMain.write<int>(offset);
+      dwMain.writeLong(offset);
    }
-   dwMain.writeAt<int>(16, offsetList.size());
+   dwMain.writeIntAt(isRemaster ? 20 : 16, offsetList.size());
 
    // Write data3Offsets
    for(int offset : firstData3Offsets){
-      dwMain.write<int>(offset);
+      dwMain.writeLong(offset);
    }
    std::sort(data3Offsets.begin(), data3Offsets.end());
    for(int offset : data3Offsets){
-      dwMain.write<int>(dwData3s.finalOffset + offset);
+      dwMain.writeLong(dwData3s.finalOffset + offset);
    }
    for(int offset : linkData3Offsets){
-      dwMain.write<int>(dwLinkData3s.finalOffset + offset);
+      dwMain.writeLong(dwLinkData3s.finalOffset + offset);
    }
-   dwMain.writeAt<int>(20, firstData3Offsets.size() + data3Offsets.size() + linkData3Offsets.size());
+   dwMain.writeIntAt(isRemaster ? 24 : 20, firstData3Offsets.size() + data3Offsets.size() + linkData3Offsets.size());
 
    // Cleanup
    for(DataWriter* dw : dwPond1Arrays){
