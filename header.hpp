@@ -8,7 +8,9 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <numeric>
 #include <set>
+#include <limits>
 
 typedef unsigned char byte;
 
@@ -32,6 +34,7 @@ struct TestFunctions{
    static void defaultFunc1(json::JSON& obj, Context context){}
    static void defaultFunc2(json::JSON& obj, Context context, int sourceType, int arg){}
 
+   // These are called by ffxToJson
    TFunc1 onRoot = &defaultFunc1;
    TFunc1 onData3 = &defaultFunc1;
    TFunc2 onAST = &defaultFunc2;
@@ -59,6 +62,10 @@ void jsonToFfx(const std::wstring& jsonPath, const std::wstring& ffxPath);
 // testing.cpp
 
 void testing();
+
+// analysisSpreadsheet.cpp
+
+void generateAnalysisSpreadsheet(std::wstring originalDir, std::wstring jsonDir);
 
 // entryPoint.cpp
 

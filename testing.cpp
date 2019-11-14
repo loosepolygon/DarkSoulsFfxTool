@@ -198,7 +198,6 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
 
    TestFunctions testFunctions;
 
-
    //testFunctions.onPond2Subtype = [&](json::JSON& obj, TestFunctions::Context context){
    //   int type = obj["subtypeType"].ToInt();
    //   if(type == 8){
@@ -235,364 +234,362 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
 
 
    // Test AST sources and supertypes
+   //testFunctions.onAST = [&](json::JSON& obj, TestFunctions::Context context, int sourceType, int arg){
+   //   if(sourceType == TestFunctions::Blossom){
+   //      int blossomType = arg;
+   //      if(blossomType == 5){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 7){
+   //         if(obj["pond1Data3s"].size() != 9){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 12){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 14){
+   //         if(obj["pond1Data3s"].size() != 8){
+   //            throw;
+   //         }
 
-   testFunctions.onAST = [&](json::JSON& obj, TestFunctions::Context context, int sourceType, int arg){
-      if(sourceType == TestFunctions::Blossom){
-         int blossomType = arg;
-         if(blossomType == 5){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 7){
-            if(obj["pond1Data3s"].size() != 9){
-               throw;
-            }
-         }else if(blossomType == 12){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 14){
-            if(obj["pond1Data3s"].size() != 8){
-               throw;
-            }
+   //         //printf(
+   //         //   "%d, %d, %d\n",
+   //         //   obj["pond1Data3s"][0]["refFfxId"].ToInt(),
+   //         //   obj["pond1Data3s"][1]["refFfxId"].ToInt(),
+   //         //   obj["pond1Data3s"][2]["refFfxId"].ToInt()
+   //         //);
+   //      }else if(blossomType == 16){
+   //         if(obj["pond1Data3s"].size() != 8){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 17){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 21){
+   //         if(obj["pond1Data3s"].size() != 3){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 41){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 51){
+   //         if(obj["pond1Data3s"].size() != 2){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 63){
+   //         if(obj["pond1Data3s"].size() != 1){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 75){
+   //         if(obj["pond1Data3s"].size() != 3){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 79){
+   //         if(obj["pond1Data3s"].size() != 1){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 80){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 87){
+   //         if(obj["pond1Data3s"].size() != 16){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 95){
+   //         if(obj["pond1Data3s"].size() != 64){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 99){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 104){
+   //         if(obj["pond1Data3s"].size() != 5){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 109){
+   //         if(obj["pond1Data3s"].size() != 2){
+   //            throw;
+   //         }
+   //      }else if(blossomType == 112){
+   //         if(obj["pond1Data3s"].size() != 2){
+   //            throw;
+   //         }
+   //      }else{
+   //         printf("%d\n", blossomType);
+   //      }
+   //   }else if(sourceType == TestFunctions::Type37){
+   //      int refFfxId = arg;
+   //      if(refFfxId == 2020){
+   //         if(obj["pond1Data3s"].size() != 13){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2023){
+   //         if(obj["pond1Data3s"].size() != 18){
+   //            throw;
+   //         }
 
-            //printf(
-            //   "%d, %d, %d\n",
-            //   obj["pond1Data3s"][0]["refFfxId"].ToInt(),
-            //   obj["pond1Data3s"][1]["refFfxId"].ToInt(),
-            //   obj["pond1Data3s"][2]["refFfxId"].ToInt()
-            //);
-         }else if(blossomType == 16){
-            if(obj["pond1Data3s"].size() != 8){
-               throw;
-            }
-         }else if(blossomType == 17){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 21){
-            if(obj["pond1Data3s"].size() != 3){
-               throw;
-            }
-         }else if(blossomType == 41){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 51){
-            if(obj["pond1Data3s"].size() != 2){
-               throw;
-            }
-         }else if(blossomType == 63){
-            if(obj["pond1Data3s"].size() != 1){
-               throw;
-            }
-         }else if(blossomType == 75){
-            if(obj["pond1Data3s"].size() != 3){
-               throw;
-            }
-         }else if(blossomType == 79){
-            if(obj["pond1Data3s"].size() != 1){
-               throw;
-            }
-         }else if(blossomType == 80){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 87){
-            if(obj["pond1Data3s"].size() != 16){
-               throw;
-            }
-         }else if(blossomType == 95){
-            if(obj["pond1Data3s"].size() != 64){
-               throw;
-            }
-         }else if(blossomType == 99){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(blossomType == 104){
-            if(obj["pond1Data3s"].size() != 5){
-               throw;
-            }
-         }else if(blossomType == 109){
-            if(obj["pond1Data3s"].size() != 2){
-               throw;
-            }
-         }else if(blossomType == 112){
-            if(obj["pond1Data3s"].size() != 2){
-               throw;
-            }
-         }else{
-            printf("%d\n", blossomType);
-         }
-      }else if(sourceType == TestFunctions::Type37){
-         int refFfxId = arg;
-         if(refFfxId == 2020){
-            if(obj["pond1Data3s"].size() != 13){
-               throw;
-            }
-         }else if(refFfxId == 2023){
-            if(obj["pond1Data3s"].size() != 18){
-               throw;
-            }
+   //         auto getData3Type = [&](int index) -> int{
+   //            return obj["pond1Data3s"][index]["data3Type"].ToInt();
+   //         };
 
-            auto getData3Type = [&](int index) -> int{
-               return obj["pond1Data3s"][index]["data3Type"].ToInt();
-            };
+   //         //printf(
+   //         //   "%d, %d, %d, %d,\n%d, %d, %d, %d\n\n",
+   //         //   getData3Type(0),
+   //         //   getData3Type(1),
+   //         //   getData3Type(2),
+   //         //   getData3Type(3),
+   //         //   getData3Type(4),
+   //         //   getData3Type(5),
+   //         //   getData3Type(6),
+   //         //   getData3Type(7)
+   //         //);
 
-            //printf(
-            //   "%d, %d, %d, %d,\n%d, %d, %d, %d\n\n",
-            //   getData3Type(0),
-            //   getData3Type(1),
-            //   getData3Type(2),
-            //   getData3Type(3),
-            //   getData3Type(4),
-            //   getData3Type(5),
-            //   getData3Type(6),
-            //   getData3Type(7)
-            //);
+   //         // Looking at first 8 types as a test
+   //         if(
+   //            getData3Type(0) != 70 ||
+   //            getData3Type(1) != 70 ||
+   //            getData3Type(2) != 1 ||
+   //            getData3Type(3) != 38 ||
+   //            getData3Type(4) != 38 ||
+   //            getData3Type(5) != 70 ||
+   //            (getData3Type(6) != 3 && getData3Type(6) != 5 && getData3Type(6) != 6) ||
+   //            getData3Type(7) != 1
+   //            ){
+   //            throw;
+   //         }
 
-            // Looking at first 8 types as a test
-            if(
-               getData3Type(0) != 70 ||
-               getData3Type(1) != 70 ||
-               getData3Type(2) != 1 ||
-               getData3Type(3) != 38 ||
-               getData3Type(4) != 38 ||
-               getData3Type(5) != 70 ||
-               (getData3Type(6) != 3 && getData3Type(6) != 5 && getData3Type(6) != 6) ||
-               getData3Type(7) != 1
-               ){
-               throw;
-            }
+   //         // Testing each AST ref
+   //         if(
+   //            getData3Type(3) != 38 ||
+   //            getData3Type(4) != 38 ||
+   //            getData3Type(11) != 38 ||
+   //            getData3Type(12) != 38 ||
+   //            getData3Type(13) != 38 ||
+   //            getData3Type(14) != 38 ||
+   //            getData3Type(15) != 38 ||
+   //            getData3Type(17) != 38
+   //            ){
+   //            throw;
+   //         }
 
-            // Testing each AST ref
-            if(
-               getData3Type(3) != 38 ||
-               getData3Type(4) != 38 ||
-               getData3Type(11) != 38 ||
-               getData3Type(12) != 38 ||
-               getData3Type(13) != 38 ||
-               getData3Type(14) != 38 ||
-               getData3Type(15) != 38 ||
-               getData3Type(17) != 38
-               ){
-               throw;
-            }
-
-            // Specific AST that emits particle
-            int p2T = obj["pond1Data3s"][11]["pond1Or2TypeMaybe"].ToInt();
-            if(p2T != 27 && p2T != 66 && p2T != 70 && p2T != 71 && p2T != 108){
-               throw;
-            }
+   //         // Specific AST that emits particle
+   //         int p2T = obj["pond1Data3s"][11]["pond1Or2TypeMaybe"].ToInt();
+   //         if(p2T != 27 && p2T != 66 && p2T != 70 && p2T != 71 && p2T != 108){
+   //            throw;
+   //         }
 
 
-            p2T = obj["pond1Data3s"][4]["pond1Or2TypeMaybe"].ToInt();
-            int p2Tb = obj["pond1Data3s"][4]["mainASTIndex"].ToInt();
-            p2Tb = context.root["mainASTs"][p2Tb]["astType"].ToInt();
-            if(p2T != 0){
-               printf("%d, %d\n", p2T, p2Tb);
-            }
-         }else if(refFfxId == 2024){
-            if(obj["pond1Data3s"].size() != 13){
-               throw;
-            }
-         }else if(refFfxId == 2031){
-            if(obj["pond1Data3s"].size() != 13){
-               throw;
-            }
-         }else if(refFfxId == 2032){
-            if(obj["pond1Data3s"].size() != 18){
-               throw;
-            }
-         }else if(refFfxId == 2101){
-            if(obj["pond1Data3s"].size() != 9){
-               throw;
-            }
-         }else if(refFfxId == 2102){
-            if(obj["pond1Data3s"].size() != 9){
-               throw;
-            }
-         }else if(refFfxId == 2115){
-            if(obj["pond1Data3s"].size() != 4){
-               throw;
-            }
-         }else if(refFfxId == 2116){
-            if(obj["pond1Data3s"].size() != 11){
-               throw;
-            }
-         }else if(refFfxId == 2117){
-            if(obj["pond1Data3s"].size() != 11){
-               throw;
-            }
-         }else if(refFfxId == 2118){
-            if(obj["pond1Data3s"].size() != 11){
-               throw;
-            }
-         }else if(refFfxId == 2121){
-            if(obj["pond1Data3s"].size() != 15){
-               throw;
-            }
-         }else if(refFfxId == 2123){
-            if(obj["pond1Data3s"].size() != 8){
-               throw;
-            }
-         }else{
-            printf("%d\n", refFfxId);
-         }
-      }else if(sourceType == TestFunctions::Type38){
-         int unk = arg;
-         if(unk == 0){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(unk == 3){
-            if(obj["pond2"]["pond2Type"].ToInt() != 61){
-               throw;
-            }
-         }else if(unk == 11){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(unk == 12){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(unk == 17){
-            if(obj["astType"].ToInt() != 0){
-               throw;
-            }
-         }else if(unk == 20){
-            if(obj["pond2"]["pond2Type"].ToInt() != 59){
-               throw;
-            }
-         }else{
-            if(obj["astType"].ToInt() == 1){
-               if(unk == 1){
-                  if(obj["pond1Data3s"].size() != 7){
-                     throw;
-                  }
-               }else if(unk == 4){
-                  if(obj["pond1Data3s"].size() != 5){
-                     throw;
-                  }
-               }else if(unk == 8){
-                  if(obj["pond1Data3s"].size() != 8){
-                     throw;
-                  }
-               }else if(unk == 10){
-                  if(obj["pond1Data3s"].size() != 7){
-                     throw;
-                  }
-               }else if(unk == 14){
-                  if(obj["pond1Data3s"].size() != 8){
-                     throw;
-                  }
-               }else if(unk == 18){
-                  if(obj["pond1Data3s"].size() != 9){
-                     throw;
-                  }
-               }else if(unk == 21){
-                  if(obj["pond1Data3s"].size() != 3){
-                     throw;
-                  }
-               }else if(unk == 24){
-                  if(obj["pond1Data3s"].size() != 12){
-                     throw;
-                  }
-               }else if(unk == 34){
-                  if(obj["pond1Data3s"].size() != 6){
-                     throw;
-                  }
-               }else if(unk == 35){
-                  if(obj["pond1Data3s"].size() != 6){
-                     throw;
-                  }
-               }else if(unk == 36){
-                  if(obj["pond1Data3s"].size() != 12){
-                     throw;
-                  }
-               }else if(unk == 46){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else if(unk == 51){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else if(unk == 52){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else if(unk == 54){
-                  if(obj["pond1Data3s"].size() != 7){
-                     throw;
-                  }
-               }else if(unk == 56){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else if(unk == 58){
-                  if(obj["pond1Data3s"].size() != 9){
-                     throw;
-                  }
-               }else if(unk == 63){
-                  if(obj["pond1Data3s"].size() != 1){
-                     throw;
-                  }
-               }else if(unk == 75){
-                  if(obj["pond1Data3s"].size() != 3){
-                     throw;
-                  }
-               }else if(unk == 79){
-                  if(obj["pond1Data3s"].size() != 1){
-                     throw;
-                  }
-               }else if(unk == 83){
-                  if(obj["pond1Data3s"].size() != 8){
-                     throw;
-                  }
-               }else if(unk == 87){
-                  if(obj["pond1Data3s"].size() != 16){
-                     throw;
-                  }
-               }else if(unk == 98){
-                  if(obj["pond1Data3s"].size() != 3){
-                     throw;
-                  }
-               }else if(unk == 109){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else if(unk == 111){
-                  if(obj["pond1Data3s"].size() != 7){
-                     throw;
-                  }
-               }else if(unk == 113){
-                  if(obj["pond1Data3s"].size() != 13){
-                     throw;
-                  }
-               }else if(unk == 115){
-                  if(obj["pond1Data3s"].size() != 2){
-                     throw;
-                  }
-               }else{
-                  printf("%d, %d\n", unk, obj["pond1Data3s"].size());
-               }
-            }else if(obj["astType"].ToInt() == 2){
-               if(unk != obj["pond2"]["pond2Type"].ToInt()){
-                  throw;
-               }
-            }
-         }
-      }
-   };
+   //         p2T = obj["pond1Data3s"][4]["pond1Or2TypeMaybe"].ToInt();
+   //         int p2Tb = obj["pond1Data3s"][4]["mainASTIndex"].ToInt();
+   //         p2Tb = context.root["mainASTs"][p2Tb]["astType"].ToInt();
+   //         if(p2T != 0){
+   //            printf("%d, %d\n", p2T, p2Tb);
+   //         }
+   //      }else if(refFfxId == 2024){
+   //         if(obj["pond1Data3s"].size() != 13){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2031){
+   //         if(obj["pond1Data3s"].size() != 13){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2032){
+   //         if(obj["pond1Data3s"].size() != 18){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2101){
+   //         if(obj["pond1Data3s"].size() != 9){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2102){
+   //         if(obj["pond1Data3s"].size() != 9){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2115){
+   //         if(obj["pond1Data3s"].size() != 4){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2116){
+   //         if(obj["pond1Data3s"].size() != 11){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2117){
+   //         if(obj["pond1Data3s"].size() != 11){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2118){
+   //         if(obj["pond1Data3s"].size() != 11){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2121){
+   //         if(obj["pond1Data3s"].size() != 15){
+   //            throw;
+   //         }
+   //      }else if(refFfxId == 2123){
+   //         if(obj["pond1Data3s"].size() != 8){
+   //            throw;
+   //         }
+   //      }else{
+   //         printf("%d\n", refFfxId);
+   //      }
+   //   }else if(sourceType == TestFunctions::Type38){
+   //      int unk = arg;
+   //      if(unk == 0){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(unk == 3){
+   //         if(obj["pond2"]["pond2Type"].ToInt() != 61){
+   //            throw;
+   //         }
+   //      }else if(unk == 11){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(unk == 12){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(unk == 17){
+   //         if(obj["astType"].ToInt() != 0){
+   //            throw;
+   //         }
+   //      }else if(unk == 20){
+   //         if(obj["pond2"]["pond2Type"].ToInt() != 59){
+   //            throw;
+   //         }
+   //      }else{
+   //         if(obj["astType"].ToInt() == 1){
+   //            if(unk == 1){
+   //               if(obj["pond1Data3s"].size() != 7){
+   //                  throw;
+   //               }
+   //            }else if(unk == 4){
+   //               if(obj["pond1Data3s"].size() != 5){
+   //                  throw;
+   //               }
+   //            }else if(unk == 8){
+   //               if(obj["pond1Data3s"].size() != 8){
+   //                  throw;
+   //               }
+   //            }else if(unk == 10){
+   //               if(obj["pond1Data3s"].size() != 7){
+   //                  throw;
+   //               }
+   //            }else if(unk == 14){
+   //               if(obj["pond1Data3s"].size() != 8){
+   //                  throw;
+   //               }
+   //            }else if(unk == 18){
+   //               if(obj["pond1Data3s"].size() != 9){
+   //                  throw;
+   //               }
+   //            }else if(unk == 21){
+   //               if(obj["pond1Data3s"].size() != 3){
+   //                  throw;
+   //               }
+   //            }else if(unk == 24){
+   //               if(obj["pond1Data3s"].size() != 12){
+   //                  throw;
+   //               }
+   //            }else if(unk == 34){
+   //               if(obj["pond1Data3s"].size() != 6){
+   //                  throw;
+   //               }
+   //            }else if(unk == 35){
+   //               if(obj["pond1Data3s"].size() != 6){
+   //                  throw;
+   //               }
+   //            }else if(unk == 36){
+   //               if(obj["pond1Data3s"].size() != 12){
+   //                  throw;
+   //               }
+   //            }else if(unk == 46){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else if(unk == 51){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else if(unk == 52){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else if(unk == 54){
+   //               if(obj["pond1Data3s"].size() != 7){
+   //                  throw;
+   //               }
+   //            }else if(unk == 56){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else if(unk == 58){
+   //               if(obj["pond1Data3s"].size() != 9){
+   //                  throw;
+   //               }
+   //            }else if(unk == 63){
+   //               if(obj["pond1Data3s"].size() != 1){
+   //                  throw;
+   //               }
+   //            }else if(unk == 75){
+   //               if(obj["pond1Data3s"].size() != 3){
+   //                  throw;
+   //               }
+   //            }else if(unk == 79){
+   //               if(obj["pond1Data3s"].size() != 1){
+   //                  throw;
+   //               }
+   //            }else if(unk == 83){
+   //               if(obj["pond1Data3s"].size() != 8){
+   //                  throw;
+   //               }
+   //            }else if(unk == 87){
+   //               if(obj["pond1Data3s"].size() != 16){
+   //                  throw;
+   //               }
+   //            }else if(unk == 98){
+   //               if(obj["pond1Data3s"].size() != 3){
+   //                  throw;
+   //               }
+   //            }else if(unk == 109){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else if(unk == 111){
+   //               if(obj["pond1Data3s"].size() != 7){
+   //                  throw;
+   //               }
+   //            }else if(unk == 113){
+   //               if(obj["pond1Data3s"].size() != 13){
+   //                  throw;
+   //               }
+   //            }else if(unk == 115){
+   //               if(obj["pond1Data3s"].size() != 2){
+   //                  throw;
+   //               }
+   //            }else{
+   //               printf("%d, %d\n", unk, obj["pond1Data3s"].size());
+   //            }
+   //         }else if(obj["astType"].ToInt() == 2){
+   //            if(unk != obj["pond2"]["pond2Type"].ToInt()){
+   //               throw;
+   //            }
+   //         }
+   //      }
+   //   }
+   //};
 
 
    for(const std::wstring& fileName : getFileNamesInDir(originalDir)){
       ffxToJson(originalDir + fileName, jsonDir + fileName + L".json", testFunctions);
    }
-
 
    //FILE* file = _wfopen(L"P2ST8.txt", L"wb");
    //fwrite(outputText.data(), 1, outputText.size(), file);
@@ -603,7 +600,7 @@ void importEveryFfxAndResearch(std::wstring originalDir, std::wstring jsonDir){
 }
 
 void testing(){
-   bool useRemastered = true;
+   bool useRemastered = false;
    const wchar_t* allFfxDir = (useRemastered ?
       L"D:/SteamGames/SteamApps/common/DARK SOULS REMASTERED/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_x64/" :
       L"C:/Program Files (x86)/Steam/steamapps/common/Dark Souls Prepare to Die Edition/DATA-BR/sfx/Dark Souls (PC)/data/Sfx/OutputData/Main/Effect_win32/"
@@ -633,5 +630,8 @@ void testing(){
    //   jsonToFfx(jsonPath, ffxPath);
    //}
 
-   exportEveryFfxAndTest(allFfxDir, jsonDir, rebuiltDir, useRemastered);
+   //exportEveryFfxAndTest(allFfxDir, jsonDir, rebuiltDir, useRemastered);
+
+
+   generateAnalysisSpreadsheet(allFfxDir, jsonDir);
 }

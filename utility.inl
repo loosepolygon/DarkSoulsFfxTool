@@ -4,7 +4,7 @@ bool includes(const TArray& arr, TElement element){
 }
 
 template<typename TArray>
-int findIndex(const TArray& arr, decltype(arr[0]) element){
+int findIndex(TArray& arr, decltype(arr[0]) element){
    int findResult = -1;
    for(int n = 0; n < (int)std::size(arr); ++n){
       if(arr[n] == element){
@@ -17,7 +17,7 @@ int findIndex(const TArray& arr, decltype(arr[0]) element){
 }
 
 template<typename TArray>
-int findIndex(const TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
+int findIndex(TArray& arr, std::function<bool(decltype(arr[0])&)> lambda){
    int findResult = -1;
    for(int n = 0; n < (int)std::size(arr); ++n){
       if(lambda(arr[n])){

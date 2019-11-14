@@ -122,6 +122,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="analysisSpreadsheet.cpp" />
     <ClCompile Include="entryPoint.cpp" />
     <ClCompile Include="ffxToJson.cpp" />
     <ClCompile Include="json.cpp" />
