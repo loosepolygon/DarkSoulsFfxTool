@@ -461,7 +461,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          };
          auto readInt = [&](const char* name = nullptr) -> int{
             if(name == nullptr){
-               sprintf(sBuffer, "unk%d", currentObject->size() - 1);
+               sprintf(sBuffer, "unk%d", currentObject->size() - 2);
                name = sBuffer;
             };
 
@@ -472,7 +472,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          };
          auto readLong = [&](const char* name = nullptr) -> int{
             if(name == nullptr){
-               sprintf(sBuffer, "unk%d", currentObject->size() - 1);
+               sprintf(sBuffer, "unk%d", currentObject->size() - 2);
                name = sBuffer;
             };
 
@@ -483,7 +483,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
          };
          auto readFloat = [&](const char* name = nullptr) -> float{
             if(name == nullptr){
-               sprintf(sBuffer, "unk%d", currentObject->size() - 1);
+               sprintf(sBuffer, "unk%d", currentObject->size() - 2);
                name = sBuffer;
             };
 
@@ -508,7 +508,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             drP.marker = fullOffset - pond2Offset - headerBeforeDR;
 
             if(name == nullptr){
-               sprintf(sBuffer, "unk%d", currentObject->size() - 1);
+               sprintf(sBuffer, "unk%d", currentObject->size() - 2);
                name = sBuffer;
             };
             json::JSON& obj = (*currentObject)[name] = json::Object();
