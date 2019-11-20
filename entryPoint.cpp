@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-int jsonVersion = 5;
+int jsonVersion = 6;
 
 void ffxReadError(const std::wstring& path, const std::wstring& text){
    std::wstring errorMessage = L"Error reading file '" + path + L"': " + text;
@@ -91,6 +91,6 @@ void mainProgram(int argCount, wchar_t** args){
 }
 
 int wmain(int argCount, wchar_t** args) {
-   testing();
-   //mainProgram(argCount, args);
+   //testing();
+   mainProgram(argCount, args);
 }
