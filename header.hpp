@@ -18,6 +18,7 @@ struct TestFunctions{
    struct Context{
       json::JSON& parent;
       json::JSON& root;
+      std::string varName;
    };
 
    enum : int{

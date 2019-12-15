@@ -492,7 +492,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
             return result;
          };
-         auto readSubtype = [&](const char* name = nullptr, int readAtLocalOffsetInstead = 0) -> void{
+         auto readSubtype = [&](std::string name = "", int readAtLocalOffsetInstead = 0) -> void{
             int oldMarker;
             int subtype;
             int fullOffset;
@@ -507,7 +507,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
             oldMarker = drP.marker;
             drP.marker = fullOffset - pond2Offset - headerBeforeDR;
 
-            if(name == nullptr){
+            if(name.empty()){
                sprintf(sBuffer, "unk%d", currentObject->size() - 2);
                name = sBuffer;
             };
@@ -603,7 +603,7 @@ void ffxToJson(const std::wstring& ffxPath, const std::wstring& jsonPath, const 
 
             drP.marker = oldMarker;
 
-            testFunctions.onPond2Subtype(obj, {*currentObject, root});
+            testFunctions.onPond2Subtype(obj, {*currentObject, root, name});
          };
          auto readSubtypes = [&](int count) -> void{
             for(int n = 0; n < count; ++n){
