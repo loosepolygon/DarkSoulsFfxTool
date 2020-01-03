@@ -2,12 +2,11 @@
 
 class ValueAnalyzer{
    std::vector<float> data;
-   std::vector<std::pair<float, int>> mostCommon; // value, count
 public:
    int count = 0;
    float min = std::numeric_limits<float>::max();
    float max = -min;
-   std::vector<float> mostCommon5;
+   std::vector<std::pair<float, int>> mostCommon; // value, count
 
    void feed(int v){
       this->data.push_back((float)v);
@@ -27,8 +26,8 @@ public:
          int mostCommon10Index = findIndex(
             this->mostCommon,
             [&](std::pair<float, int>& pair) -> bool{
-            return pair.first == v;
-         }
+               return pair.first == v;
+            }
          );
          if(mostCommon10Index == -1){
             this->mostCommon.emplace_back(v, 0);
@@ -41,14 +40,9 @@ public:
          this->mostCommon.begin(),
          this->mostCommon.end(),
          [&](auto& a, auto& b) -> bool{
-         return a.second > b.second;
-      }
+            return a.second > b.second;
+         }
       );
-
-      for(auto& pair : this->mostCommon){
-         this->mostCommon5.push_back(pair.first);
-         if(this->mostCommon5.size() >= 5) break;
-      }
    }
 };
 
@@ -1025,7 +1019,7 @@ void outputTable(std::string& csvText, SpreadsheetTable& table){
    }
 
    //csvText += '\n';
-   csvText += "var,min,max,common1,common2,common3,common4,common5";
+   csvText += "var,min,max,common1,common2,common3,common4,common5,common6";
 
    // Analyze data and add relevant array columns
    bool usesArrays = false;
@@ -1072,10 +1066,11 @@ void outputTable(std::string& csvText, SpreadsheetTable& table){
          );
          csvText += buffer;
 
-         std::vector<float>& mostCommon5 = row.valueAnalyzer.mostCommon5;
-         for(size_t n = 0; n < 5; ++n){
-            if(n < mostCommon5.size()){
-               snprintf(buffer, sizeof(buffer), ",%g", mostCommon5[n]);
+         std::vector<std::pair<float, int>>& mostCommon = row.valueAnalyzer.mostCommon;
+         for(size_t n = 0; n < 6; ++n){
+            if(n < mostCommon.size()){
+               //snprintf(buffer, sizeof(buffer), ",%g", mostCommon[n].first);
+               snprintf(buffer, sizeof(buffer), ",%g (x%i)", mostCommon[n].first, mostCommon[n].second);
                csvText += buffer;
             }else{
                csvText += ",";
@@ -1094,10 +1089,11 @@ void outputTable(std::string& csvText, SpreadsheetTable& table){
          );
          csvText += buffer;
 
-         std::vector<float>& mostCommon5 = row.arrayAnalyzer.arraySize.mostCommon5;
-         for(size_t n = 0; n < 5; ++n){
-            if(n < mostCommon5.size()){
-               snprintf(buffer, sizeof(buffer), ",%g", mostCommon5[n]);
+         std::vector<std::pair<float, int>>& mostCommon = row.arrayAnalyzer.arraySize.mostCommon;
+         for(size_t n = 0; n < 6; ++n){
+            if(n < mostCommon.size()){
+               //snprintf(buffer, sizeof(buffer), ",%g", mostCommon[n].first);
+               snprintf(buffer, sizeof(buffer), ",%g (x%i)", mostCommon[n].first, mostCommon[n].second);
                csvText += buffer;
             }else{
                csvText += ",";
